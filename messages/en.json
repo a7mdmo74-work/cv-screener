@@ -24,7 +24,11 @@
     "switch_to_english": "Switch to English"
   },
   "theme": {
-    "toggle_theme": "Toggle light/dark theme"
+    "toggle_theme": "Toggle light/dark theme",
+    "choose_theme": "Choose appearance",
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "system": "Use system theme"
   },
   "header": {
     "checking_ollama": "Checking Ollama…",
@@ -53,7 +57,6 @@
     "showing": "Showing",
     "of": "of",
     "select_jobs_to_export_a_unified_word_summary": ". Select jobs to export a unified Word summary.",
-    "export_unified_summary_word": "Export unified summary (Word)",
     "no_jobs_match_this_search": "No jobs match this search.",
     "select": "Select",
     "loading_screening_jobs": "Loading screening jobs…",
@@ -100,7 +103,6 @@
     "structured_candidate_screening": "Structured candidate screening",
     "build_a_role_specific_rubric_evaluate_cvs_consistently_and_keep_every_hiring_round_organiz": "Build a role-specific rubric, evaluate CVs consistently, and keep every hiring round organized from one workspace.",
     "create_screening_round": "Create screening round",
-    "one_consistent_workflow": "One consistent workflow",
     "from_role_requirements_to_a_confident_shortlist": "From role requirements to a confident shortlist",
     "define_the_role": "Define the role",
     "add_the_job_description_and_confirm_what_matters": "Add the job description and confirm what matters.",
