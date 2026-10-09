@@ -1,4 +1,11 @@
 "use client";
+import { ReviewerOnly, useCanReview } from "@/components/auth/access-provider";
+import { useUiFormatter } from "@/i18n/format";
+
+import { stageStatusKeys, parseStatusKeys, screeningStageKeys } from "@/i18n/labels";
+import { errorText } from "@/i18n/errors";
+
+import { useTranslations, useLocale } from "next-intl";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import {
@@ -18,42 +25,18 @@ import {
 import type { CvDetail, JobResults, ScreeningProgress } from "@/lib/schemas/screening";
 import { PASS_A_CAP_ERROR } from "@/lib/screening/stage-messages";
 
-const STAGE_LABEL: Record<ScreeningProgress["stage"], string> = {
-  draft: "Draft",
-  queued: "Waiting for the local worker",
-  extracting: "AI is reading CVs",
-  scoring: "AI is scoring candidates",
-  rescoring: "AI is rescoring the top 40",
-  pass_a: "Pass A ranking",
-  turbo: "Turbo screening",
-  enrich: "Enriching top candidates",
-  done: "Done",
-  partial: "Partial — shortlist ready",
-  cancelled: "Cancelled",
-  failed: "Failed",
-};
-
-const WORKING_COPY: Partial<Record<ScreeningProgress["stage"], string>> = {
-  queued:
-    "Queued behind another job, or waiting for the worker. Cancel does not interrupt an in-flight Ollama call until you restart the worker.",
-  extracting:
-    "AI is working — extracting names, experience, and skills from each CV.",
-  scoring: "AI is working — scoring candidates against your rubric.",
-  rescoring:
-    "AI is working — rescoring the top 40 with the larger model.",
-  pass_a: "Pass A is ranking CVs with keywords and years. No LLM yet.",
-  turbo:
-    "Pass A ranked every CV. Turbo is scoring the top cap with one local call each.",
-  enrich: "AI is enriching the top shortlist with a deeper pass.",
-  partial:
-    "Fast pass finished. Remaining CVs kept their Pass A rank. Continue to screen more.",
-};
+const workingKeys = {
+  queued: "results.queued_behind_another_job_or_waiting_for_the_worker_cancel_does_not_interrupt_an_in_flight",
+  extracting: "status.working_extracting", scoring: "status.working_scoring", rescoring: "status.working_rescoring",
+  pass_a: "results.pass_a_is_ranking_cvs_with_keywords_and_years_no_llm_yet", turbo: "results.pass_a_ranked_every_cv_turbo_is_scoring_the_top_cap_with_one_local_call_each",
+  enrich: "status.working_enrich", partial: "results.fast_pass_finished_remaining_cvs_kept_their_pass_a_rank_continue_to_screen_more",
+} as const;
 
 function Spinner() {
   return (
     <span
       aria-hidden
-      className="inline-block size-5 shrink-0 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100"
+      className="inline-block size-5 shrink-0 animate-spin rounded-full border-2 border-border border-t-accent"
     />
   );
 }
@@ -67,6 +50,11 @@ export function ScreeningMonitor({
   initialProgress: ScreeningProgress;
   initialResults: JobResults;
 }) {
+  const canReview = useCanReview();
+  const t = useTranslations();
+  const format = useUiFormatter();
+  const locale = useLocale();
+
   const [progress, setProgress] = useState(initialProgress);
   const [results, setResults] = useState(initialResults);
   const [error, setError] = useState<string | null>(null);
@@ -136,14 +124,14 @@ export function ScreeningMonitor({
       {error ? (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          className="rounded-lg border border-danger bg-danger-bg p-3 text-sm text-danger"
         >
-          {error}
+          {error ? errorText(t, error) : null}
         </div>
       ) : null}
 
       <section
-        className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+        className="rounded-xl border border-border bg-surface p-5"
         aria-live="polite"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -151,10 +139,10 @@ export function ScreeningMonitor({
             {inFlight ? <Spinner /> : null}
             <div>
               <h2 className="text-sm font-semibold">
-                {inFlight && !hasResults ? "AI is working" : "Screening progress"}
+                {inFlight && !hasResults ? t("status.working") : t("results.screening_progress")}
               </h2>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                {STAGE_LABEL[progress.stage]}
+              <p className="mt-1 text-sm text-muted">
+                {t(screeningStageKeys[progress.stage])}
                 {progress.twoPass ? " · Two-pass" : ""}
               </p>
             </div>
@@ -163,35 +151,27 @@ export function ScreeningMonitor({
             {hasResults ? (
               <>
                 <a
-                  href={`/jobs/${jobId}/export`}
+                  href={`/jobs/${jobId}/export?locale=${locale}`}
                   className={secondaryButtonClassName}
-                >
-                  Export CSV
-                </a>
+                >{t("results.export_csv")}</a>
                 <details className="relative">
                   <summary
                     className={`${secondaryButtonClassName} cursor-pointer list-none`}
-                  >
-                    Export Excel
-                  </summary>
-                  <div className="absolute end-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 text-sm shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
+                  >{t("results.export_excel")}</summary>
+                  <div className="absolute end-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-surface py-1 text-sm shadow-lg">
                     <a
                       href={`/jobs/${jobId}/export/xlsx?scope=all`}
-                      className="block px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    >
-                      All scored
-                    </a>
+                      className="block px-3 py-2 hover:bg-surface-muted"
+                    >{t("results.all_scored")}</a>
                     <a
                       href={`/jobs/${jobId}/export/xlsx?scope=top15`}
-                      className="block px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    >
-                      Top 15
-                    </a>
+                      className="block px-3 py-2 hover:bg-surface-muted"
+                    >{t("results.top_15")}</a>
                   </div>
                 </details>
               </>
             ) : null}
-            {canCancel ? (
+            {canReview && canCancel ? (
               <button
                 className={primaryButtonClassName}
                 disabled={cancelling}
@@ -207,29 +187,25 @@ export function ScreeningMonitor({
                   });
                 }}
               >
-                {cancelling ? "Cancelling…" : "Cancel"}
+                {cancelling ? t("results.cancelling") : t("results.cancel")}
               </button>
             ) : null}
           </div>
         </div>
         {inFlight && !hasResults ? (
-          <p className="mt-4 text-sm text-zinc-700 dark:text-zinc-300">
-            {WORKING_COPY[progress.stage] ??
-              "AI is working on this screening job."}{" "}
+          <p className="mt-4 text-sm text-foreground">
+            {t(workingKeys[progress.stage as keyof typeof workingKeys] ?? "status.working_default")}{" "}
             {progress.passACap > 0
-              ? `Pass A ranked ${progress.parsed}. Turbo scoring top ${progress.passACap}.`
-              : "Candidate lists appear after the first scored CV."}
+              ? t("results.cap_summary", {count: progress.parsed, cap: progress.passACap})
+              : t("results.candidate_lists_appear_after_the_first_scored_cv")}
           </p>
         ) : null}
         {progress.stage === "partial" ? (
-          <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-            Partial run: {progress.scored} scored, {progress.notScreened} not
-            screened. Top 15 is from the turbo-scored set.
-          </p>
+          <p className="mt-4 rounded-lg bg-warning-bg p-3 text-sm text-warning">{t("results.partial_summary", {scored: progress.scored, remaining: progress.notScreened})}</p>
         ) : null}
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-muted">
           <div
-            className={`h-full bg-zinc-900 dark:bg-zinc-100 ${inFlight ? "animate-pulse" : ""}`}
+            className={`h-full bg-accent  ${inFlight ? "animate-pulse" : ""}`}
             style={{
               width: `${progress.status === "done" ? 100 : Math.min(100, percent)}%`,
             }}
@@ -237,40 +213,40 @@ export function ScreeningMonitor({
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-zinc-500">Parsed</dt>
-            <dd>{progress.parsed}</dd>
+            <dt className="text-muted">{t("results.parsed")}</dt>
+            <dd>{format.number(progress.parsed)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-500">Extracted</dt>
-            <dd>{progress.extracted}</dd>
+            <dt className="text-muted">{t("results.extracted")}</dt>
+            <dd>{format.number(progress.extracted)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-500">Scored</dt>
-            <dd>{progress.scored}</dd>
+            <dt className="text-muted">{t("results.scored_64")}</dt>
+            <dd>{format.number(progress.scored)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-500">Failed</dt>
-            <dd>{progress.failed}</dd>
+            <dt className="text-muted">{t("results.failed")}</dt>
+            <dd>{format.number(progress.failed)}</dd>
           </div>
         </dl>
         {progress.turboMode ? (
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-zinc-500">CVs/min</dt>
-              <dd>{progress.cvsPerMinute ?? "—"}</dd>
+              <dt className="text-muted">{t("results.cvs_min")}</dt>
+              <dd>{progress.cvsPerMinute == null ? "—" : format.number(progress.cvsPerMinute)}</dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Tokens/s</dt>
-              <dd>{progress.tokensPerSecond ?? "—"}</dd>
+              <dt className="text-muted">{t("results.tokens_s")}</dt>
+              <dd>{progress.tokensPerSecond == null ? "—" : format.number(progress.tokensPerSecond)}</dd>
             </div>
             <div>
-              <dt className="text-zinc-500">ETA</dt>
+              <dt className="text-muted">{t("results.eta")}</dt>
               <dd>
-                {progress.etaMinutes == null ? "—" : `${progress.etaMinutes} min`}
+                {progress.etaMinutes == null ? "—" : t("common.minutes", {count: format.number(progress.etaMinutes)})}
               </dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Remaining</dt>
+              <dt className="text-muted">{t("results.remaining")}</dt>
               <dd>
                 {progress.turboMode
                   ? progress.pending
@@ -280,12 +256,8 @@ export function ScreeningMonitor({
           </dl>
         ) : null}
         {progress.status === "queued" ? (
-          <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-            The worker runs one job at a time. If you cancelled the previous
-            job, restart{" "}
-            <code className="font-mono">npm run worker</code> so this one starts
-            immediately. Otherwise start the worker if it is not running.
-          </p>
+          <p className="mt-4 rounded-lg bg-warning-bg p-3 text-sm text-warning">{t("results.the_worker_runs_one_job_at_a_time_if_you_cancelled_the_previous_job_restart")}{" "}
+            <code className="font-mono">{t("results.npm_run_worker")}</code>{t("results.so_this_one_starts_immediately_otherwise_start_the_worker_if_it_is_not_running")}</p>
         ) : null}
       </section>
 
@@ -301,12 +273,12 @@ export function ScreeningMonitor({
 
       {(!inFlight || results.notScreened.length > 0) &&
       results.notScreened.length > 0 ? (
-        <section className="overflow-hidden rounded-xl border border-amber-200 bg-white dark:border-amber-900 dark:bg-zinc-950">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 px-4 py-3 text-sm font-semibold dark:border-amber-900">
-            <span>Not screened</span>
+        <section className="overflow-hidden rounded-xl border border-warning bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-warning px-4 py-3 text-sm font-semibold">
+            <span>{t("results.not_screened")}</span>
             <button
               className={secondaryButtonClassName}
-              disabled={continuing || inFlight || !canContinueRemaining}
+              disabled={!canReview || continuing || inFlight || !canContinueRemaining}
               type="button"
               onClick={() => {
                 startContinue(async () => {
@@ -319,18 +291,17 @@ export function ScreeningMonitor({
                 });
               }}
             >
-              {continuing ? "Queueing…" : "Continue screening remaining"}
+              {continuing ? t("results.queueing") : t("results.continue_screening_remaining")}
             </button>
           </div>
-          <ul className="divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+          <ul className="divide-y divide-border text-sm">
             {results.notScreened.map((cv) => {
               const ranked = results.all.find((row) => row.id === cv.id);
               return (
                 <li key={cv.id} className="px-4 py-3">
-                  <p className="font-medium">{cv.fileName}</p>
-                  <p className="text-zinc-500">
-                    Pass A {ranked?.passAScore ?? "—"}
-                    {cv.error ? ` · ${cv.error}` : ""}
+                  <p className="font-medium"><bdi>{cv.fileName}</bdi></p>
+                  <p className="text-muted">{t("results.pass_a")}{ranked?.passAScore ?? "—"}
+                    {cv.error ? ` · ${cv.error ? errorText(t, cv.error) : null}` : ""}
                   </p>
                 </li>
               );
@@ -340,17 +311,15 @@ export function ScreeningMonitor({
       ) : null}
 
       {showLists && results.unparsed.length > 0 ? (
-        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-zinc-800">
-            Unparsed / failed CVs
-          </div>
-          <ul className="divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="border-b border-border px-4 py-3 text-sm font-semibold">{t("results.unparsed_failed_cvs")}</div>
+          <ul className="divide-y divide-border text-sm">
             {results.unparsed.map((cv) => (
               <li key={cv.id} className="px-4 py-3">
-                <p className="font-medium">{cv.fileName}</p>
-                <p className="text-zinc-500">
-                  {cv.parseStatus === "parsed" ? cv.stageStatus : cv.parseStatus}
-                  {cv.error ? ` · ${cv.error}` : ""}
+                <p className="font-medium"><bdi>{cv.fileName}</bdi></p>
+                <p className="text-muted">
+                  {cv.parseStatus === "parsed" ? t(stageStatusKeys[cv.stageStatus]) : t(parseStatusKeys[cv.parseStatus])}
+                  {cv.error ? ` · ${cv.error ? errorText(t, cv.error) : null}` : ""}
                 </p>
               </li>
             ))}
@@ -359,20 +328,16 @@ export function ScreeningMonitor({
       ) : null}
 
       {hasResults ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold">Re-rank</h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Totals are computed in code from the stored criterion scores. Changing
-            weights does not call the model again. Excel and Word exports use the
-            updated totals.
-          </p>
+        <section className="rounded-xl border border-border bg-surface p-5">
+          <h2 className="text-sm font-semibold">{t("results.re_rank")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("results.totals_are_computed_in_code_from_the_stored_criterion_scores_changing_weights_does_not_cal")}</p>
           <div className="mt-4">
-            <RerankForm
+            <ReviewerOnly><RerankForm
               jobId={jobId}
               weights={results.weights}
               onError={setError}
               onResults={setResults}
-            />
+            /></ReviewerOnly>
           </div>
         </section>
       ) : null}

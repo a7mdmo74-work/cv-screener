@@ -1,25 +1,30 @@
+
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { getOllamaHealth } from "@/actions/health";
 
 const toneClasses = {
   green:
-    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+    "border-success bg-success-bg text-success",
   amber:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  red: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+    "border-warning bg-warning-bg text-warning",
+  red: "border-danger bg-danger-bg text-danger",
 } as const;
 
 export function OllamaStatusFallback() {
+  const t = useTranslations();
+
   return (
     <span
       role="status"
-      className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-    >
-      Checking Ollama…
-    </span>
+      className="inline-flex items-center rounded-full border border-border bg-surface-muted px-2.5 py-1 text-xs font-medium text-muted"
+    >{t("header.checking_ollama")}</span>
   );
 }
 
 export async function OllamaStatusBadge() {
+  const t = await getTranslations();
+
   const result = await getOllamaHealth();
 
   if (!result.ok) {
@@ -27,9 +32,7 @@ export async function OllamaStatusBadge() {
       <span
         role="status"
         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClasses.red}`}
-      >
-        Ollama error
-      </span>
+      >{t("header.ollama_error")}</span>
     );
   }
 
@@ -41,10 +44,8 @@ export async function OllamaStatusBadge() {
       <span
         role="status"
         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClasses.red}`}
-        title="Ollama is not reachable at the configured host"
-      >
-        Ollama offline
-      </span>
+        title={t("header.ollama_is_not_reachable_at_the_configured_host")}
+      >{t("header.ollama_offline")}</span>
     );
   }
 
@@ -53,10 +54,8 @@ export async function OllamaStatusBadge() {
       <span
         role="status"
         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClasses.amber}`}
-        title={`Missing models: ${missingModels.join(", ")}`}
-      >
-        Ollama missing models
-      </span>
+        title={t("header.missing_models", {models: missingModels.join(", ")})}
+      >{t("header.ollama_missing_models")}</span>
     );
   }
 
@@ -64,9 +63,7 @@ export async function OllamaStatusBadge() {
     <span
       role="status"
       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClasses.green}`}
-      title="Ollama is reachable and both configured models are available"
-    >
-      Ollama ready
-    </span>
+      title={t("header.ollama_is_reachable_and_both_configured_models_are_available")}
+    >{t("header.ollama_ready")}</span>
   );
 }

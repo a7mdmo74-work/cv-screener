@@ -1,3 +1,4 @@
+import { routeAccess } from "@/lib/auth/server";
 import { requestLocale } from "@/i18n/request-locale";
 import { getTranslations } from "next-intl/server";
 import path from "node:path";
@@ -16,6 +17,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string; cvId: string }> },
 ) {
+  const denied = await routeAccess(request, "viewer");
+  if (denied) return denied;
+
   await connection();
   const locale = await requestLocale(request);
   const t = await getTranslations({locale,namespace:"errors"});
@@ -40,6 +44,7 @@ export async function GET(
     const extension = fileExtension(cv.fileName);
     return new Response(data, {
       headers: {
+        "Cache-Control": "private, no-store",
         "Content-Type": CONTENT_TYPES[extension] ?? "application/octet-stream",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(cv.fileName)}"`,
       },

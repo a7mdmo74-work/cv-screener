@@ -175,3 +175,64 @@ Wrap any future HTML report or exam sheet in `.print-light` and avoid adding a `
 TypeScript, ESLint, all 86 Vitest tests (including six theme guards), 126 contrast pairs, and the production build pass. Browser checks passed 39 scenarios against development, 39 against the Cache Components production build, and 39 against an isolated cache-disabled production build. These checks covered the first visible frame with hydration scripts delayed, preference persistence, live system changes, English/Arabic routes, existing results/drawers/upload/clone pages, mid-form toggling, forced-light print styles and reduced motion. English and Arabic wizard layouts also stayed within a 390px viewport.
 
 Actual file uploads, worker/model execution, platform-specific autofill rendering, screen-reader use, office-application viewing, and a future PDF/exam report were not exercised. The manual checklist above covers these remaining checks. Database/model behavior and document generators were not changed for theming.
+
+## Authentication
+
+The app uses Better Auth with the Prisma SQLite adapter and bcrypt (cost 12).
+All business pages require a session. Server Actions and downloads/exports check
+roles independently on the server. `admin` can manage users and perform reviewer
+work; `hr_reviewer` can screen and review; `viewer` can read and export results.
+Sources and settings management must use `requireRole("admin")`; knowledge reviews
+use `requireRole("hr_reviewer")`. The current role and disabled state are read from
+the database on each request. Role changes, disabling accounts and admin password
+resets revoke that account's sessions. Removing the final active admin is blocked.
+
+1. Apply migrations: `npx prisma migrate deploy`.
+2. Set distinct random `BETTER_AUTH_SECRET` and `AUTH_SETUP_TOKEN` values (at least
+   32 characters each), and `BETTER_AUTH_URL` to the exact origin. Generate keys
+   with `openssl rand -hex 32`. Keep `.env` private; never use the example values.
+3. Open `/en/setup` or `/ar/setup`, enter the server's `AUTH_SETUP_TOKEN`, and
+   create the first admin. Setup cannot run again after the first account exists.
+4. Sign in, open **Users**, and create reviewer/viewer accounts. There is no public
+   signup. Users can edit their name and change their password through their name in the header.
+
+Secure, httpOnly, SameSite=Lax cookies are always enabled; localhost supports
+Secure cookies for development, and non-local deployments require HTTPS. Better
+Auth CSRF protections remain enabled. The auth endpoint also requires the exact
+origin for JSON mutations; Next.js protects Server Actions with its origin checks.
+Login has persistent account and global limits in addition to Better Auth's
+per-IP limit. Forwarded headers cannot bypass the account budget. Budgets expire
+in five minutes. Configure your reverse proxy to overwrite client IP headers.
+Sessions expire after eight hours. Back up the database and auth secret together.
+
+`reviewKnowledgeProposal` derives its reviewer from the session. The review and
+KnowledgeAudit write are atomic. `recordDecision` stores user IDs in `decidedBy`
+and `authenticatedUserId` and writes an audit entry, without changing the supplied
+decision calculation. Historic free-text `decidedBy` records are preserved; no
+identities are invented for them. Admins can remove users: sessions and credentials are deleted and the account
+is hidden from management. The historical identity remains for audit references;
+the email can be reused for a new account. The last active admin cannot be removed. No scoring, ranking, exam or interview calculations
+were changed by authentication.
+
+Auth integration tests create an isolated SQLite database from the migrations;
+no accounts or test decisions are written to the application's database. Run
+`npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+
+Admin-created accounts receive an invitation containing their assigned email,
+password, and localized login link. Set `LIVE_URL` to the public origin
+(`http://localhost:3000` locally; `https://cv.example.com` in production), and
+set `BETTER_AUTH_URL` to the same production origin for authentication. Configure
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM` with your
+email provider's settings. Port 587 requires STARTTLS; port 465 uses implicit TLS.
+Restart the app after editing `.env`. See [Nodemailer's SMTP guide](https://nodemailer.com/smtp).
+
+Invitations follow the admin's current language (English or Arabic) and ask the
+recipient to change their password under My account. Plaintext passwords are
+used only during the request to compose the email, never stored in the database
+or logs. Missing or invalid email settings block creation. A delivery failure
+after creation shows a separate warning and retains the account; SMTP acceptance
+does not guarantee inbox delivery. Password resets do not send invitation emails.
+
+Development Server Function argument logging is disabled because auth actions
+accept passwords and the setup key. Auth-dependent segments opt out of instant
+navigation validation so request-time redirects do not trigger the dev overlay.

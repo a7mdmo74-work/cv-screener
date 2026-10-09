@@ -1,7 +1,11 @@
 "use client";
+import { errorText } from "@/i18n/errors";
+import { uiLabel } from "@/i18n/labels";
 
+import { useTranslations } from "next-intl";
+import { CircleAlert, CircleCheck } from "lucide-react";
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import {
   buildBasicRubric,
   createJob,
@@ -12,19 +16,12 @@ import { cloneJobWithCvs } from "@/actions/screening";
 import { StepDescription } from "@/components/wizard/step-description";
 import { StepQuestions } from "@/components/wizard/step-questions";
 import { StepRubric } from "@/components/wizard/step-rubric";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Rubric } from "@/lib/schemas/rubric";
 import type {
   ClarifyingAnswers,
   JobDescriptionInput,
 } from "@/lib/schemas/wizard";
-import { busyOllamaMessage } from "@/lib/wizard/fallback-rubric";
-
-const steps = ["Description", "Questions", "Rubric"] as const;
-const stepDescriptions = [
-  "Define the role",
-  "Clarify priorities",
-  "Review criteria",
-] as const;
 
 export const DEFAULT_JOB_DETAILS: JobDescriptionInput = {
   title: "",
@@ -44,6 +41,18 @@ export function JobWizard({
   initialDetails?: JobDescriptionInput;
   initialRubric?: Rubric;
 } = {}) {
+  const t = useTranslations();
+
+  const steps = [
+    t("wizard.description"),
+    t("wizard.questions"),
+    t("wizard.rubric"),
+  ];
+  const stepDescriptions = [
+    t("wizard.define_the_role"),
+    t("wizard.clarify_priorities"),
+    t("wizard.review_criteria"),
+  ];
   const router = useRouter();
   const cloning = Boolean(sourceJobId);
   const [step, setStep] = useState(0);
@@ -61,6 +70,7 @@ export function JobWizard({
     action: () => Promise<{ ok: true; data: T } | { ok: false; error: string }>,
     onSuccess: (data: T) => void,
   ) {
+
     const token = requestId.current + 1;
     requestId.current = token;
     setError(null);
@@ -80,7 +90,7 @@ export function JobWizard({
       if (token !== requestId.current) {
         return;
       }
-      setError(caught instanceof Error ? caught.message : "Something went wrong");
+      setError(caught instanceof Error ? caught.message : t("wizard.something_went_wrong"));
     } finally {
       if (token === requestId.current) {
         setPending(false);
@@ -92,42 +102,47 @@ export function JobWizard({
     data: { rubric: Rubric; usedFallback: boolean },
     skipped = false,
   ) {
+
     setRubric(data.rubric);
     setStep(2);
     if (skipped) {
       setNotice(
-        "Basic rubric from the job description. Review and edit it before saving.",
+        t("wizard.basic_rubric_from_the_job_description_review_and_edit_it_before_saving"),
       );
       return;
     }
     if (data.usedFallback) {
-      setNotice(busyOllamaMessage());
+      setNotice(t("errors.OLLAMA_BUSY"));
     }
   }
 
   return (
     <div className="space-y-6">
       <ol
-        aria-label="Screening setup progress"
-        className="grid grid-cols-3 gap-2 border-b border-zinc-200 pb-5 dark:border-zinc-800"
+        aria-label={t("wizard.screening_setup_progress")}
+        className="grid grid-cols-3 gap-2"
       >
         {steps.map((label, index) => {
           const current = index === step;
           const done = index < step;
           return (
             <li
-              key={label}
+              key={uiLabel(t, label)}
               aria-current={current ? "step" : undefined}
-              className="min-w-0"
+              className={`min-w-0 rounded-xl border p-3 transition-colors sm:p-4 ${
+                current
+                  ? "border-accent bg-surface-muted"
+                  : "border-transparent bg-surface-muted/40"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                     current
-                      ? "bg-indigo-700 text-white dark:bg-indigo-400 dark:text-zinc-950"
+                      ? "bg-accent text-accent-foreground"
                       : done
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                        ? "bg-success-bg text-success"
+                        : "bg-surface-muted text-muted"
                   }`}
                 >
                   {done ? <CheckIcon /> : index + 1}
@@ -136,14 +151,14 @@ export function JobWizard({
                   <span
                     className={`block truncate text-xs font-semibold sm:text-sm ${
                       current
-                        ? "text-zinc-900 dark:text-zinc-50"
-                        : "text-zinc-500 dark:text-zinc-400"
+                        ? "text-foreground"
+                        : "text-muted"
                     }`}
                   >
-                    {label}
+                    {uiLabel(t, label)}
                   </span>
-                  <span className="hidden text-[11px] text-zinc-500 dark:text-zinc-400 sm:block">
-                    {stepDescriptions[index]}
+                  <span className="mt-0.5 hidden text-[11px] text-muted sm:block">
+                    {uiLabel(t, stepDescriptions[index])}
                   </span>
                 </span>
               </div>
@@ -153,21 +168,17 @@ export function JobWizard({
       </ol>
 
       {error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
-        >
-          {error}
-        </div>
+        <Alert variant="destructive" className="border-danger bg-danger-bg text-danger">
+          <CircleAlert className="size-4" aria-hidden="true" />
+          <AlertDescription className="text-current">{error ? errorText(t, error) : null}</AlertDescription>
+        </Alert>
       ) : null}
 
       {notice ? (
-        <div
-          role="status"
-          className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
-        >
-          {notice}
-        </div>
+        <Alert role="status" className="border-warning bg-warning-bg text-warning">
+          <CircleCheck className="size-4" aria-hidden="true" />
+          <AlertDescription className="text-current">{notice}</AlertDescription>
+        </Alert>
       ) : null}
 
       {step === 0 ? (
@@ -225,7 +236,7 @@ export function JobWizard({
         <StepRubric
           defaultValues={rubric}
           pending={pending}
-          submitLabel={cloning ? "Clone and queue scoring" : "Save screening job"}
+          submitLabel={cloning ? t("wizard.clone_and_queue_scoring") : t("wizard.save_screening_job")}
           onBack={() => {
             setError(null);
             setStep(1);

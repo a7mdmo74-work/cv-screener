@@ -1,4 +1,5 @@
 "use server";
+import { requireRole } from "@/lib/auth/server";
 import { errorCode } from "@/i18n/errors";
 
 import { revalidatePath } from "next/cache";
@@ -35,6 +36,7 @@ import {
 export async function generateClarifyingQuestions(
   input: JobDescriptionInput,
 ): Promise<ActionResult<{ questions: string[] }>> {
+  await requireRole("hr_reviewer");
   const parsed = jobDescriptionSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job details") };
@@ -65,6 +67,7 @@ export async function generateRubric(input: {
   details: JobDescriptionInput;
   answers: ClarifyingAnswer[];
 }): Promise<ActionResult<{ rubric: Rubric; usedFallback: boolean }>> {
+  await requireRole("hr_reviewer");
   const details = jobDescriptionSchema.safeParse(input.details);
   if (!details.success) {
     return { ok: false, error: errorCode(details.error.issues[0]?.message ?? "Invalid job details") };
@@ -126,6 +129,7 @@ export async function generateRubric(input: {
 export async function buildBasicRubric(
   input: JobDescriptionInput,
 ): Promise<ActionResult<{ rubric: Rubric; usedFallback: true }>> {
+  await requireRole("hr_reviewer");
   const parsed = jobDescriptionSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job details") };
@@ -140,6 +144,7 @@ export async function buildBasicRubric(
 export async function createJob(
   input: CreateJobInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireRole("hr_reviewer");
   const parsed = createJobInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job") };

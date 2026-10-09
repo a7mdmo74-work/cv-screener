@@ -9,7 +9,7 @@ import ar from "../../messages/ar.json";
 import { jobStatusKeys, parseStatusKeys, stageStatusKeys, screeningStageKeys } from "./labels";
 import { jobStatusSchema, parseStatusSchema, stageStatusSchema } from "@/lib/schemas/job";
 import { screeningStageSchema } from "@/lib/schemas/screening";
-import { safeLocale, exportUrl } from "./locale";
+import { safeLocale, exportUrl, resolveLocale } from "./locale";
 import { routing } from "./routing";
 import { errorText } from "./errors";
 
@@ -22,7 +22,7 @@ describe("localization",()=>{
   it("blocks new raw JSX text and untranslated accessible attributes",()=>{const failures:string[]=[];for(const file of [...files("src/app"),...files("src/components")]){const source=ts.createSourceFile(file,readFileSync(file,"utf8"),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);function visit(node:ts.Node){if(ts.isJsxText(node)&&/[A-Za-z\u0600-\u06ff]/.test(node.text))failures.push(`${file}: ${node.text.trim()}`);if(ts.isJsxAttribute(node)&&["aria-label","placeholder","title"].includes(node.name.getText(source))&&node.initializer&&ts.isStringLiteral(node.initializer)&&/[A-Za-z\u0600-\u06ff]/.test(node.initializer.text))failures.push(`${file}: ${node.initializer.text}`);ts.forEachChild(node,visit);}visit(source);}expect(failures).toEqual([]);});
   it("covers every DB and screening enum",()=>{for(const [schema,map] of [[jobStatusSchema,jobStatusKeys],[parseStatusSchema,parseStatusKeys],[stageStatusSchema,stageStatusKeys],[screeningStageSchema,screeningStageKeys]] as const)expect(Object.keys(map).sort()).toEqual([...schema.options].sort());});
   it("uses Western digits, Gregorian dates and all Arabic plural categories",()=>{const format=createFormatter({locale:"ar",timeZone:"Asia/Dubai"});expect(format.number(83.85,{numberingSystem:"latn"})).toBe("83.85");const date=format.dateTime(new Date("2026-10-09T00:00:00Z"),{year:"numeric",month:"2-digit",day:"2-digit",numberingSystem:"latn",calendar:"gregory"});expect(date).toContain("2026");expect(date).not.toMatch(/[٠-٩]/);const t=createTranslator({locale:"ar",messages:ar});for(const count of [0,1,2,3,11,100]){const text=t("common.cv_count",{count});expect(text).toContain(String(count));expect(text).not.toMatch(/[٠-٩]/);}});
-  it("keeps routing and export language selection explicit",()=>{expect(routing.localePrefix).toBe("always");expect(safeLocale("ar")).toBe("ar");expect(safeLocale("fr")).toBe("en");expect(exportUrl("/jobs/id/export?scope=all","ar")).toBe("/jobs/id/export?scope=all&locale=ar");});
+  it("keeps routing and export language selection explicit",()=>{expect(routing.localePrefix).toBe("always");expect(safeLocale("ar")).toBe("ar");expect(safeLocale("fr")).toBe("en");expect(resolveLocale(undefined,"fr","ar")).toBe("ar");expect(resolveLocale()).toBe("en");expect(exportUrl("/jobs/id/export?scope=all","ar")).toBe("/jobs/id/export?scope=all&locale=ar");});
   it("maps legacy and coded errors without exposing arbitrary diagnostics",()=>{const t=createTranslator({locale:"ar",messages:ar});expect(errorText(t,"Screening job not found")).toBe(ar.errors.JOB_NOT_FOUND);expect(errorText(t,"JOB_NOT_FOUND")).toBe(ar.errors.JOB_NOT_FOUND);expect(errorText(t,"private raw diagnostic")).toBe(ar.errors.UNKNOWN);});
 });
 

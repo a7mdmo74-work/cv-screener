@@ -3,7 +3,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { ensureSqliteDirectory, env } from "@/lib/env";
 
 /** Bump after `prisma generate` so Next.js does not keep a stale client on globalThis. */
-const PRISMA_SCHEMA_REVISION = "turbo-passAScore";
+const PRISMA_SCHEMA_REVISION = "authentication-v3-user-removal";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

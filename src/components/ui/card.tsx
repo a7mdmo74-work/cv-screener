@@ -5,7 +5,7 @@ type CardProps = HTMLAttributes<HTMLDivElement>;
 export function Card({ className = "", ...props }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-zinc-200 bg-white text-zinc-950 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 ${className}`}
+      className={`rounded-xl border border-border bg-card text-card-foreground shadow-sm ${className}`}
       {...props}
     />
   );
@@ -24,12 +24,12 @@ export function CardTitle({ className = "", ...props }: CardProps) {
 export function CardDescription({ className = "", ...props }: CardProps) {
   return (
     <p
-      className={`text-sm leading-6 text-zinc-500 dark:text-zinc-400 ${className}`}
+      className={`text-sm leading-6 text-muted  ${className}`}
       {...props}
     />
   );
 }
 
 export function CardContent({ className = "", ...props }: CardProps) {
-  return <div className={`p-5 pt-0 sm:p-6 sm:pt-0 ${className}`} {...props} />;
+  return <div className={`p-5 pt-0 sm:p-6 ${className}`} {...props} />;
 }

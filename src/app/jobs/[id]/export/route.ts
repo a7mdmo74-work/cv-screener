@@ -1,3 +1,4 @@
+import { routeAccess } from "@/lib/auth/server";
 import { requestLocale } from "@/i18n/request-locale";
 import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
@@ -10,6 +11,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const denied = await routeAccess(request, "viewer");
+  if (denied) return denied;
+
   await connection();
   const locale = await requestLocale(request);
   const t = await getTranslations({locale,namespace:"errors"});
@@ -44,6 +48,7 @@ export async function GET(
 
   return new Response(csv, {
     headers: {
+        "Cache-Control": "private, no-store",
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${fileName}"`,
     },

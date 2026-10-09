@@ -1,4 +1,5 @@
 "use server";
+import { requireRole } from "@/lib/auth/server";
 import { errorCode } from "@/i18n/errors";
 
 import { writeFile } from "node:fs/promises";
@@ -44,6 +45,7 @@ function toCvListItem(cv: {
 export async function listCvs(
   jobId: string,
 ): Promise<ActionResult<CvListItem[]>> {
+  await requireRole("viewer");
   const parsed = uploadJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid job") };
@@ -80,6 +82,7 @@ export async function listCvs(
 export async function uploadAndParseCvs(
   formData: FormData,
 ): Promise<ActionResult<UploadParseResult>> {
+  await requireRole("hr_reviewer");
   const parsed = uploadJobIdSchema.safeParse({
     jobId: formData.get("jobId"),
   });

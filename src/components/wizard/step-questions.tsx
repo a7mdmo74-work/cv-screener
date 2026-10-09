@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import {
@@ -7,11 +9,10 @@ import {
   type ClarifyingAnswers,
 } from "@/lib/schemas/wizard";
 import {
-  inputClassName,
   labelClassName,
-  primaryButtonClassName,
-  secondaryButtonClassName,
 } from "@/components/wizard/styles";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 export function StepQuestions({
   defaultValues,
@@ -24,6 +25,8 @@ export function StepQuestions({
   onBack: () => void;
   onSubmit: (values: ClarifyingAnswers) => void;
 }) {
+  const t = useTranslations();
+
   const { control, register, handleSubmit, setValue } = useForm<ClarifyingAnswers>({
     resolver: zodResolver(clarifyingAnswersSchema),
     defaultValues,
@@ -36,50 +39,52 @@ export function StepQuestions({
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Answer the questions that matter. Leave any question blank to skip it.
-      </p>
+      <p className="text-sm text-muted">{t("wizard.answer_the_questions_that_matter_leave_any_question_blank_to_skip_it")}</p>
       {fields.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-          No clarifying questions were needed. Continue to generate the rubric.
-        </p>
+        <p className="rounded-xl border border-dashed border-border-strong bg-surface-muted/40 p-5 text-sm leading-6 text-muted-foreground">{t("wizard.no_clarifying_questions_were_needed_continue_to_generate_the_rubric")}</p>
       ) : (
         <div className="space-y-4">
           {fields.map((field, index) => (
-            <div key={field.id}>
+            <div key={field.id} className="rounded-xl border border-border bg-card p-4 sm:p-5">
               <label className={labelClassName} htmlFor={`answer-${index}`}>
                 {field.question}
               </label>
-              <textarea
+              <Textarea dir="auto"
                 id={`answer-${index}`}
-                className={`${inputClassName} min-h-24`}
+                className="min-h-24 resize-y bg-background leading-6"
                 disabled={pending}
                 {...register(`answers.${index}.answer`)}
               />
-              <button
-                className="mt-2 text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+              <Button
+                className="mt-2 h-auto px-0 py-1 text-xs text-muted-foreground"
+                variant="ghost"
                 disabled={pending}
                 type="button"
                 onClick={() => setValue(`answers.${index}.answer`, "")}
-              >
-                Skip this question
-              </button>
+              >{t("wizard.skip_this_question")}</Button>
             </div>
           ))}
         </div>
       )}
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-        <button
-          className={secondaryButtonClassName}
+        <Button
+          variant="outline"
+          className="h-10 gap-2"
           disabled={pending}
           type="button"
           onClick={onBack}
         >
-          Back
-        </button>
-        <button className={primaryButtonClassName} disabled={pending} type="submit">
-          {pending ? "Building rubric…" : "Generate rubric"}
-        </button>
+          <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+          {t("wizard.back")}
+        </Button>
+        <Button
+          className="h-10 gap-2 bg-accent text-accent-foreground hover:bg-accent-hover"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? t("wizard.building_rubric") : t("wizard.generate_rubric")}
+          <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+        </Button>
       </div>
     </form>
   );

@@ -47,6 +47,8 @@ model Job {
   tokensPerSecond    Float?
   createdAt          DateTime  @default(now())
   cvs                Cv[]
+  exams              Exam[]
+  workflowSettingsJson String @default("{}")
 }
 
 model Cv {
@@ -70,7 +72,227 @@ model Cv {
   completionTokens Int?
   stageStatus      StageStatus @default(pending)
   error            String?
+  shortlisted      Boolean @default(false)
+  candidateStage   CandidateStage?
+  exams            Exam[]
+  attempts         ExamAttempt[]
+  interviews       InterviewEvaluation[]
+  reports          FinalReport[]
+  decision         Decision?
 
   @@index([jobId, totalScore])
   @@index([contentHash])
+}
+
+
+enum CandidateStage {
+  shortlisted
+  exam_ready
+  exam_graded
+  interviewed
+  report_ready
+  decided
+}
+
+model Exam {
+  id String @id @default(cuid())
+  jobId String
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  cvId String
+  cv Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  seniority String
+  language String
+  blueprintJson String
+  questionsJson String @default("[]")
+  answerKeyJson String @default("[]")
+  version Int
+  variant String
+  status String @default("draft")
+  model String
+  promptVersion String
+  inputHash String
+  createdAt DateTime @default(now())
+  attempts ExamAttempt[]
+  @@unique([cvId, version])
+}
+
+model ExamAttempt {
+  id String @id @default(cuid())
+  examId String
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  cvId String
+  cv Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  answersJson String
+  practicalJson String
+  gradedJson String
+  rawScore Float
+  percentage Float
+  passMark Float
+  blankCount Int
+  wrongCount Int
+  durationMin Float?
+  gradedAt DateTime @default(now())
+}
+
+model InterviewEvaluation {
+  id String @id @default(cuid())
+  cvId String
+  cv Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  formTemplate String
+  interviewDate DateTime
+  location String
+  interviewType String
+  interviewersJson String
+  ratingsJson String
+  headerJson String @default("{}")
+  deptManagerNotes String
+  hrRecommendation String
+  computedJson String
+  createdAt DateTime @default(now())
+}
+
+model FinalReport {
+  id String @id @default(cuid())
+  cvId String
+  cv Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  reportJson String
+  pdfPath String?
+  docxPath String?
+  status String @default("draft")
+  language String
+  model String
+  promptVersion String
+  inputsHash String
+  version Int
+  createdAt DateTime @default(now())
+  @@unique([cvId, version])
+}
+
+model Decision {
+  cvId String @id
+  cv Cv @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  outcome String
+  conditionsJson String
+  decidedBy String
+  authenticatedUserId String?
+  authenticatedUser User? @relation(fields: [authenticatedUserId], references: [id])
+  decidedAt DateTime @default(now())
+  notes String
+}
+
+model WorkflowTask {
+  id String @id @default(cuid())
+  kind String
+  cvId String
+  payloadJson String
+  status String @default("queued")
+  progress String @default("Queued")
+  error String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt])
+}
+
+
+model User {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  role String @default("viewer")
+  disabled Boolean @default(false)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
+  audits KnowledgeAudit[]
+  reviewedChanges KnowledgeChange[]
+  decisions Decision[]
+}
+
+model Session {
+  id String @id
+  token String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+}
+
+model RateLimit {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  lastRequest Float
+}
+
+model AuthThrottle {
+  key String @id
+  count Int
+  windowStart DateTime
+}
+
+model AuthSetup {
+  id String @id
+  completedAt DateTime @default(now())
+}
+
+model KnowledgeChange {
+  id String @id @default(cuid())
+  status String @default("pending")
+  proposalJson String
+  reviewedBy String?
+  reviewer User? @relation(fields: [reviewedBy], references: [id])
+  reviewedAt DateTime?
+  reviewNote String?
+  createdAt DateTime @default(now())
+}
+
+model KnowledgeAudit {
+  id String @id @default(cuid())
+  actorId String
+  actor User @relation(fields: [actorId], references: [id])
+  action String
+  entityType String
+  entityId String
+  beforeJson String?
+  afterJson String?
+  note String?
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
 }

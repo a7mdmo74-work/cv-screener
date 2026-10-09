@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -10,7 +12,6 @@ import {
   primaryButtonClassName,
 } from "@/components/wizard/styles";
 import {
-  CRITERION_LABELS,
   SCORE_CRITERIA,
   type RubricWeights,
 } from "@/lib/schemas/rubric";
@@ -27,6 +28,8 @@ export function RerankForm({
   onResults: (results: JobResults) => void;
   onError: (message: string) => void;
 }) {
+  const t = useTranslations();
+
   const [pending, startTransition] = useTransition();
   const form = useForm<RerankInput>({
     resolver: zodResolver(rerankSchema),
@@ -50,8 +53,8 @@ export function RerankForm({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SCORE_CRITERIA.map((key) => (
           <label key={key} className="block">
-            <span className={labelClassName}>{CRITERION_LABELS[key]}</span>
-            <input
+            <span className={labelClassName}>{t(`status.${key}`)}</span>
+            <input dir="auto"
               className={inputClassName}
               type="number"
               min={0}
@@ -62,7 +65,7 @@ export function RerankForm({
         ))}
       </div>
       <button className={primaryButtonClassName} disabled={pending} type="submit">
-        {pending ? "Re-ranking…" : "Re-rank with new weights"}
+        {pending ? t("results.re_ranking") : t("results.re_rank_with_new_weights")}
       </button>
     </form>
   );

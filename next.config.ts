@@ -2,6 +2,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Server Function arguments can contain passwords and the setup key.
+  logging: { serverFunctions: false },
   cacheComponents: true,
   partialPrefetching: true,
   serverExternalPackages: ["better-sqlite3", "pdf-parse", "mammoth", "adm-zip"],

@@ -1,0 +1,2 @@
+import { criteria } from "./criteria";
+export const laForm = { template: "LA", criteria, headerFields: ["Full Name","Nationality","School/ University","Educational Qualification","Specialization","Graduation Date/ Year","Country","Total Years of Experience","Position Applied For","Department"], signatures: ["Interviewer 1","Interviewer 2","Department Manager","HR Manager","General Manager"] } as const;

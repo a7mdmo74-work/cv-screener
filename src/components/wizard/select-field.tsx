@@ -1,3 +1,7 @@
+import { validationText } from "@/i18n/validation";
+import { uiLabel } from "@/i18n/labels";
+
+import { useTranslations } from "next-intl";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 import { inputClassName, labelClassName } from "@/components/wizard/styles";
 import { selectOptions } from "@/lib/schemas/job-fields";
@@ -10,7 +14,7 @@ export function SelectField({
   pending,
   error,
   registration,
-  placeholder = "Select…",
+  placeholder,
 }: {
   id: string;
   label: string;
@@ -21,6 +25,8 @@ export function SelectField({
   registration: UseFormRegisterReturn;
   placeholder?: string;
 }) {
+  const t = useTranslations();
+
   const values = selectOptions(options, currentValue);
   const hasEmpty = !currentValue?.trim();
 
@@ -31,23 +37,26 @@ export function SelectField({
       </label>
       <select
         id={id}
-        className={inputClassName}
+        className={`${inputClassName} leading-5`}
         disabled={pending}
         {...registration}
       >
         {hasEmpty ? (
           <option value="" disabled>
-            {placeholder}
+            {placeholder ?? t("wizard.select")}
           </option>
         ) : null}
         {values.map((value) => (
-          <option key={value} value={value}>
-            {value}
+          <option
+            key={value}
+            value={value}
+          >
+            {options.includes(value) ? uiLabel(t, value) : value}
           </option>
         ))}
       </select>
       {error?.message ? (
-        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error.message}</p>
+        <p className="mt-1 text-sm text-danger">{validationText(t, error.message)}</p>
       ) : null}
     </div>
   );

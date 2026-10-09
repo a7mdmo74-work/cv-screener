@@ -17,6 +17,12 @@ export const screeningJobIdSchema = z.object({
   jobId: z.string().min(1),
 });
 
+export const deleteJobsSchema = z
+  .array(z.string().min(1).max(64))
+  .min(1)
+  .max(50)
+  .refine((jobIds) => new Set(jobIds).size === jobIds.length);
+
 export const screeningCvIdSchema = z.object({
   jobId: z.string().min(1),
   cvId: z.string().min(1),

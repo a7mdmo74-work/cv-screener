@@ -1,5 +1,8 @@
 "use client";
+import { useUiFormatter } from "@/i18n/format";
 
+import { useTranslations } from "next-intl";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useFieldArray,
@@ -10,19 +13,15 @@ import {
   type UseFormSetValue,
 } from "react-hook-form";
 import { SelectField } from "@/components/wizard/select-field";
-import {
-  inputClassName,
-  labelClassName,
-  primaryButtonClassName,
-  secondaryButtonClassName,
-} from "@/components/wizard/styles";
+import { labelClassName } from "@/components/wizard/styles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   EMPLOYMENT_TYPE_OPTIONS,
   GEOGRAPHIC_SCOPE_OPTIONS,
   SENIORITY_LEVEL_OPTIONS,
 } from "@/lib/schemas/job-fields";
 import {
-  CRITERION_LABELS,
   SCORE_CRITERIA,
   type Rubric,
 } from "@/lib/schemas/rubric";
@@ -83,6 +82,8 @@ function StringListField({
   control: Control<RubricFormValues>;
   register: UseFormRegister<RubricFormValues>;
 }) {
+  const t = useTranslations();
+
   const { fields, append, remove } = useFieldArray({ control, name });
 
   return (
@@ -90,29 +91,33 @@ function StringListField({
       <legend className={labelClassName}>{label}</legend>
       {fields.map((field, index) => (
         <div key={field.id} className="flex gap-2">
-          <input
-            className={inputClassName}
+          <Input dir="auto"
+            className="h-10 bg-background"
             disabled={pending}
             {...register(`${name}.${index}.value`)}
           />
-          <button
-            className={secondaryButtonClassName}
+          <Button
+            variant="outline"
+            className="h-10 gap-1.5"
             disabled={pending || fields.length === 1}
             type="button"
             onClick={() => remove(index)}
           >
-            Remove
-          </button>
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            {t("wizard.remove")}
+          </Button>
         </div>
       ))}
-      <button
-        className="text-sm font-medium text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
+      <Button
+        variant="ghost"
+        className="h-8 gap-1.5 px-2 text-sm text-accent"
         disabled={pending}
         type="button"
         onClick={() => append({ value: "" })}
       >
-        Add {label.toLowerCase()}
-      </button>
+        <Plus className="size-4" aria-hidden="true" />
+        {t("common.add_field", {label})}
+      </Button>
     </fieldset>
   );
 }
@@ -120,7 +125,7 @@ function StringListField({
 export function StepRubric({
   defaultValues,
   pending,
-  submitLabel = "Save screening job",
+  submitLabel,
   onBack,
   onSubmit,
 }: {
@@ -130,6 +135,8 @@ export function StepRubric({
   onBack: () => void;
   onSubmit: (rubric: Rubric) => void;
 }) {
+  const t = useTranslations();
+
   const { control, register, handleSubmit, formState, setValue } =
     useForm<RubricFormValues>({
       resolver: zodResolver(rubricFormSchema),
@@ -151,6 +158,7 @@ export function StepRubric({
       className="space-y-6"
       onSubmit={handleSubmit((values) => {
         onSubmit({
+          outputLanguage: defaultValues.outputLanguage,
           mustHave: cleanList(values.mustHave),
           niceToHave: cleanList(values.niceToHave),
           minYearsExperience: parseYears(values.minYearsExperience),
@@ -174,7 +182,7 @@ export function StepRubric({
       <div className="grid gap-5 sm:grid-cols-2">
         <SelectField
           id="geographicScope"
-          label="Geographic scope"
+          label={t("wizard.geographic_scope")}
           options={GEOGRAPHIC_SCOPE_OPTIONS}
           currentValue={geographicScope}
           pending={pending}
@@ -183,7 +191,7 @@ export function StepRubric({
         />
         <SelectField
           id="employmentType"
-          label="Employment type"
+          label={t("wizard.employment_type")}
           options={EMPLOYMENT_TYPE_OPTIONS}
           currentValue={employmentType}
           pending={pending}
@@ -192,7 +200,7 @@ export function StepRubric({
         />
         <SelectField
           id="seniorityLevel"
-          label="Seniority"
+          label={t("wizard.seniority")}
           options={SENIORITY_LEVEL_OPTIONS}
           currentValue={seniorityLevel}
           pending={pending}
@@ -201,18 +209,16 @@ export function StepRubric({
         />
       </div>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" disabled={pending} {...register("includeNationalityColumn")} />
-        Include nationality column in Excel
-      </label>
+        <input type="checkbox" disabled={pending} {...register("includeNationalityColumn")} />{t("wizard.include_nationality_column_in_excel")}</label>
       <StringListField
-        label="Must have"
+        label={t("wizard.must_have")}
         name="mustHave"
         pending={pending}
         control={control}
         register={register}
       />
       <StringListField
-        label="Nice to have"
+        label={t("wizard.nice_to_have")}
         name="niceToHave"
         pending={pending}
         control={control}
@@ -220,12 +226,10 @@ export function StepRubric({
       />
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label className={labelClassName} htmlFor="minYearsExperience">
-            Minimum years of experience
-          </label>
-          <input
+          <label className={labelClassName} htmlFor="minYearsExperience">{t("wizard.minimum_years_of_experience")}</label>
+          <Input dir="auto"
             id="minYearsExperience"
-            className={inputClassName}
+            className="h-10 bg-background"
             type="number"
             min={0}
             step={1}
@@ -234,96 +238,94 @@ export function StepRubric({
           />
         </div>
         <div>
-          <label className={labelClassName} htmlFor="education">
-            Education
-          </label>
-          <input id="education" className={inputClassName} disabled={pending} {...register("education")} />
+          <label className={labelClassName} htmlFor="education">{t("wizard.education")}</label>
+          <Input id="education" className="h-10 bg-background" disabled={pending} {...register("education")} />
         </div>
         <div>
-          <label className={labelClassName} htmlFor="location">
-            Location
-          </label>
-          <input id="location" className={inputClassName} disabled={pending} {...register("location")} />
+          <label className={labelClassName} htmlFor="location">{t("wizard.location")}</label>
+          <Input id="location" className="h-10 bg-background" disabled={pending} {...register("location")} />
         </div>
       </div>
       <StringListField
-        label="Languages"
+        label={t("wizard.languages")}
         name="languages"
         pending={pending}
         control={control}
         register={register}
       />
       <StringListField
-        label="Deal-breakers"
+        label={t("wizard.deal_breakers")}
         name="dealBreakers"
         pending={pending}
         control={control}
         register={register}
       />
-      <fieldset className="space-y-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <legend className="px-1 text-sm font-medium">Salary bands (optional)</legend>
+      <fieldset className="space-y-3 rounded-xl border border-border bg-surface-muted/20 p-4 sm:p-5">
+        <legend className="px-1 text-sm font-medium">{t("wizard.salary_bands_optional")}</legend>
         {fields.map((field, index) => (
           <div key={field.id} className="grid gap-2 sm:grid-cols-5">
-            <input
-              className={inputClassName}
+            <Input dir="auto"
+              className="h-10 bg-background"
               type="number"
-              placeholder="Min score"
+              placeholder={t("wizard.min_score")}
               disabled={pending}
               {...register(`salaryBands.${index}.minScore`, { valueAsNumber: true })}
             />
-            <input
-              className={inputClassName}
+            <Input dir="auto"
+              className="h-10 bg-background"
               type="number"
-              placeholder="Max score"
+              placeholder={t("wizard.max_score")}
               disabled={pending}
               {...register(`salaryBands.${index}.maxScore`, { valueAsNumber: true })}
             />
-            <input
-              className={inputClassName}
+            <Input dir="auto"
+              className="h-10 bg-background"
               type="number"
-              placeholder="Min AED"
+              placeholder={t("wizard.min_aed")}
               disabled={pending}
               {...register(`salaryBands.${index}.minAED`, { valueAsNumber: true })}
             />
-            <input
-              className={inputClassName}
+            <Input dir="auto"
+              className="h-10 bg-background"
               type="number"
-              placeholder="Max AED"
+              placeholder={t("wizard.max_aed")}
               disabled={pending}
               {...register(`salaryBands.${index}.maxAED`, { valueAsNumber: true })}
             />
-            <button
-              className={secondaryButtonClassName}
+            <Button
+              variant="outline"
+              className="h-10 gap-1.5"
               type="button"
               disabled={pending}
               onClick={() => remove(index)}
             >
-              Remove
-            </button>
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              {t("wizard.remove")}
+            </Button>
           </div>
         ))}
-        <button
-          className="text-sm font-medium"
+        <Button
+          variant="ghost"
+          className="h-8 gap-1.5 px-2 text-accent"
           type="button"
           disabled={pending}
           onClick={() =>
             append({ minScore: 50, maxScore: 64, minAED: 0, maxAED: 0 })
           }
         >
-          Add salary band
-        </button>
+          <Plus className="size-4" aria-hidden="true" />
+          {t("wizard.add_salary_band")}
+        </Button>
       </fieldset>
-      <fieldset className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <legend className="px-1 text-sm font-medium">Criterion weights</legend>
+      <fieldset className="space-y-4 rounded-xl border border-border bg-surface-muted/20 p-4 sm:p-5">
+        <legend className="px-1 text-sm font-medium">{t("wizard.criterion_weights")}</legend>
         <p
           className={`text-sm font-medium ${
             weightsTotal === 100
-              ? "text-emerald-700 dark:text-emerald-300"
-              : "text-amber-700 dark:text-amber-300"
+              ? "text-success"
+              : "text-warning"
           }`}
-        >
-          Weights total: {weightsTotal}
-          {weightsTotal === 100 ? "" : " (aim for 100)"}
+        >{t("common.checking_weight", {total: weightsTotal})}
         </p>
         {SCORE_CRITERIA.map((key) => (
           <WeightSlider
@@ -336,23 +338,28 @@ export function StepRubric({
           />
         ))}
         {formState.errors.weights ? (
-          <p className="text-sm text-red-600 dark:text-red-400">
-            Check the weight values.
-          </p>
+          <p className="text-sm text-danger">{t("wizard.check_the_weight_values")}</p>
         ) : null}
       </fieldset>
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-        <button
-          className={secondaryButtonClassName}
+        <Button
+          variant="outline"
+          className="h-10 gap-2"
           disabled={pending}
           type="button"
           onClick={onBack}
         >
-          Back
-        </button>
-        <button className={primaryButtonClassName} disabled={pending} type="submit">
-          {pending ? "Saving…" : submitLabel}
-        </button>
+          <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+          {t("wizard.back")}
+        </Button>
+        <Button
+          className="h-10 gap-2 bg-accent text-accent-foreground hover:bg-accent-hover"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? t("wizard.saving") : (submitLabel ?? t("wizard.save_screening_job"))}
+          <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+        </Button>
       </div>
     </form>
   );
@@ -371,14 +378,17 @@ function WeightSlider({
   register: UseFormRegister<RubricFormValues>;
   setValue: UseFormSetValue<RubricFormValues>;
 }) {
+  const t = useTranslations();
+  const format = useUiFormatter();
+
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-        <label htmlFor={`weight-${criterion}`}>{CRITERION_LABELS[criterion]}</label>
+        <label htmlFor={`weight-${criterion}`}>{t(`status.${criterion}`)}</label>
         <span className="flex items-center gap-2">
-          <span>{value}</span>
-          <label className="flex items-center gap-1 text-xs text-zinc-500">
-            <input
+          <span dir="ltr">{format.number(value)}</span>
+          <label className="flex items-center gap-1 text-xs text-muted">
+            <input dir="auto"
               type="checkbox"
               checked={value === 0}
               disabled={pending}
@@ -387,12 +397,10 @@ function WeightSlider({
                   shouldDirty: true,
                 });
               }}
-            />
-            Zero
-          </label>
+            />{t("wizard.zero")}</label>
         </span>
       </div>
-      <input
+      <input dir="auto"
         id={`weight-${criterion}`}
         className="w-full"
         type="range"

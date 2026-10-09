@@ -1,26 +1,348 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-strong: var(--border-strong);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-overlay: var(--overlay);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --color-focus-ring: var(--focus-ring);
+  --color-skeleton: var(--skeleton);
+  --color-table-row-hover: var(--table-row-hover);
+  --color-table-header: var(--table-header);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --shadow-sm: var(--shadow);
+  --shadow-md: var(--shadow);
+  --shadow-lg: var(--shadow);
+  --shadow-xl: var(--shadow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+
+:root {
+  --light-background: #F7F8FA;
+  --light-surface: #FFFFFF;
+  --light-surface-muted: #F1F3F6;
+  --light-border: #7B889B;
+  --light-border-strong: #69788E;
+  --light-foreground: #0F172A;
+  --light-muted: #526077;
+  --light-accent: #0F766E;
+  --light-accent-hover: #115E59;
+  --light-accent-foreground: #FFFFFF;
+  --light-ring: #0F766E;
+  --light-success: #15803D;
+  --light-success-bg: #DCFCE7;
+  --light-warning: #A34A08;
+  --light-warning-bg: #FEF3C7;
+  --light-danger: #B91C1C;
+  --light-danger-bg: #FEE2E2;
+  --light-info: #1D4ED8;
+  --light-info-bg: #DBEAFE;
+  --light-overlay: rgb(15 23 42 / 55%);
+  --light-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+  --light-selection: #0F766E;
+  --light-selection-foreground: #FFFFFF;
+  --light-focus-ring: #0F766E;
+  --light-skeleton: #CBD2DC;
+  --light-table-row-hover: #F1F3F6;
+  --light-table-header: #F1F3F6;
+  --light-disabled: #F1F3F6;
+  --light-disabled-foreground: #526077;
+  --light-radius: 0.625rem;
+}
+
+:root, .print-light {
+  color-scheme: light;
+  --background: var(--light-background);
+  --surface: var(--light-surface);
+  --surface-muted: var(--light-surface-muted);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+  --foreground: var(--light-foreground);
+  --muted: var(--light-muted);
+  --accent: var(--light-accent);
+  --accent-hover: var(--light-accent-hover);
+  --accent-foreground: var(--light-accent-foreground);
+  --ring: var(--light-ring);
+  --success: var(--light-success);
+  --success-bg: var(--light-success-bg);
+  --warning: var(--light-warning);
+  --warning-bg: var(--light-warning-bg);
+  --danger: var(--light-danger);
+  --danger-bg: var(--light-danger-bg);
+  --info: var(--light-info);
+  --info-bg: var(--light-info-bg);
+  --overlay: var(--light-overlay);
+  --shadow: var(--light-shadow);
+  --selection: var(--light-selection);
+  --selection-foreground: var(--light-selection-foreground);
+  --focus-ring: var(--light-focus-ring);
+  --skeleton: var(--light-skeleton);
+  --table-row-hover: var(--light-table-row-hover);
+  --table-header: var(--light-table-header);
+  --disabled: var(--light-disabled);
+  --disabled-foreground: var(--light-disabled-foreground);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--foreground);
+  --muted-foreground: var(--muted);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --chart-1: var(--success);
+  --chart-2: var(--info);
+  --chart-3: var(--warning);
+  --chart-4: var(--danger);
+  --chart-5: var(--muted);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-foreground);
+  --sidebar-accent: var(--surface-muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --radius: var(--light-radius);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0B1220;
+  --surface: #111A2B;
+  --surface-muted: #172236;
+  --border: #61728E;
+  --border-strong: #7C8CA6;
+  --foreground: #E6EBF2;
+  --muted: #9AA8BD;
+  --accent: #2DD4BF;
+  --accent-hover: #5EEAD4;
+  --accent-foreground: #04211D;
+  --ring: #5EEAD4;
+  --success: #4ADE80;
+  --success-bg: #0F2A1B;
+  --warning: #FBBF24;
+  --warning-bg: #2B2108;
+  --danger: #F87171;
+  --danger-bg: #2E1114;
+  --info: #60A5FA;
+  --info-bg: #0E1E3A;
+  --overlay: rgb(11 18 32 / 75%);
+  --shadow: 0 0 0 0 transparent;
+  --selection: #2DD4BF;
+  --selection-foreground: #04211D;
+  --focus-ring: #5EEAD4;
+  --skeleton: #34445F;
+  --table-row-hover: #172236;
+  --table-header: #172236;
+  --disabled: #172236;
+  --disabled-foreground: #9AA8BD;
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--foreground);
+  --muted-foreground: var(--muted);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --chart-1: var(--success);
+  --chart-2: var(--info);
+  --chart-3: var(--warning);
+  --chart-4: var(--danger);
+  --chart-5: var(--muted);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-foreground);
+  --sidebar-accent: var(--surface-muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --radius: 0.625rem;
+}
+
+body { font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif; }
+html[dir="rtl"] body { font-family: var(--font-arabic), Arial, Helvetica, sans-serif; line-height: 1.8; }
+select { line-height: 1.25rem; }
+html[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="email"]):not([type="url"]):not([type="tel"]):not([type="number"]):not([type="date"]):not([type="datetime-local"]):not([type="month"]):not([type="time"]):not([type="week"]):not([dir="ltr"]),
+html[dir="rtl"] textarea:not([dir="ltr"]),
+html[dir="rtl"] select:not([dir="ltr"]),
+html[dir="rtl"] [contenteditable="true"]:not([dir="ltr"]) {
+  direction: rtl;
+  text-align: right;
+}
+bdi { unicode-bidi: isolate; }
+
+.select-with-chevron {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none !important;
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  html { @apply font-sans; }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+}
+
+/* Print palettes never depend on the user's saved appearance. */
+@media print {
+  :root, html.dark, .print-light {
+    color-scheme: light !important;
+    --background: var(--light-background) !important;
+    --surface: var(--light-surface) !important;
+    --surface-muted: var(--light-surface-muted) !important;
+    --border: var(--light-border) !important;
+    --border-strong: var(--light-border-strong) !important;
+    --foreground: var(--light-foreground) !important;
+    --muted: var(--light-muted) !important;
+    --accent: var(--light-accent) !important;
+    --accent-hover: var(--light-accent-hover) !important;
+    --accent-foreground: var(--light-accent-foreground) !important;
+    --ring: var(--light-ring) !important;
+    --success: var(--light-success) !important;
+    --success-bg: var(--light-success-bg) !important;
+    --warning: var(--light-warning) !important;
+    --warning-bg: var(--light-warning-bg) !important;
+    --danger: var(--light-danger) !important;
+    --danger-bg: var(--light-danger-bg) !important;
+    --info: var(--light-info) !important;
+    --info-bg: var(--light-info-bg) !important;
+    --overlay: var(--light-overlay) !important;
+    --shadow: var(--light-shadow) !important;
+    --selection: var(--light-selection) !important;
+    --selection-foreground: var(--light-selection-foreground) !important;
+    --focus-ring: var(--light-focus-ring) !important;
+    --skeleton: var(--light-skeleton) !important;
+    --table-row-hover: var(--light-table-row-hover) !important;
+    --table-header: var(--light-table-header) !important;
+    --disabled: var(--light-disabled) !important;
+    --disabled-foreground: var(--light-disabled-foreground) !important;
+    --card: var(--surface) !important;
+    --card-foreground: var(--foreground) !important;
+    --popover: var(--surface) !important;
+    --popover-foreground: var(--foreground) !important;
+    --primary: var(--accent) !important;
+    --primary-foreground: var(--accent-foreground) !important;
+    --secondary: var(--surface-muted) !important;
+    --secondary-foreground: var(--foreground) !important;
+    --muted-foreground: var(--muted) !important;
+    --destructive: var(--danger) !important;
+    --input: var(--border-strong) !important;
+    --chart-1: var(--success) !important;
+    --chart-2: var(--info) !important;
+    --chart-3: var(--warning) !important;
+    --chart-4: var(--danger) !important;
+    --chart-5: var(--muted) !important;
+    --sidebar: var(--surface) !important;
+    --sidebar-foreground: var(--foreground) !important;
+    --sidebar-primary: var(--accent) !important;
+    --sidebar-primary-foreground: var(--accent-foreground) !important;
+    --sidebar-accent: var(--surface-muted) !important;
+    --sidebar-accent-foreground: var(--foreground) !important;
+    --sidebar-border: var(--border) !important;
+    --sidebar-ring: var(--ring) !important;
+    --radius: var(--light-radius) !important;
   }
+  body, .print-light {
+    background: var(--surface) !important;
+    color: var(--foreground) !important;
+  }
+  *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
+  header, [data-slot="theme-toggle"] { display: none !important; }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+::selection { background: var(--selection); color: var(--selection-foreground); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) var(--surface); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius); }
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+input[type="checkbox"], input[type="radio"], progress { accent-color: var(--accent); }
+input:-webkit-autofill, textarea:-webkit-autofill, select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+}
+/* Keep disabled labels readable even when a primitive adds opacity. */
+:where(button, input, select, textarea):disabled, [aria-disabled="true"] {
+  opacity: 1;
+  background-color: var(--disabled);
+  color: var(--disabled-foreground);
+  border-color: var(--border-strong);
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

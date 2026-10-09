@@ -1,4 +1,5 @@
 "use server";
+import { requireRole } from "@/lib/auth/server";
 import { errorCode } from "@/i18n/errors";
 
 import { revalidatePath } from "next/cache";
@@ -54,6 +55,7 @@ function revalidateJob(jobId: string) {
 export async function startScreening(
   input: StartScreeningInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireRole("hr_reviewer");
   const parsed = startScreeningSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid request") };
@@ -126,6 +128,7 @@ export async function startScreening(
 export async function continueScreeningRemaining(
   input: ScreeningJobIdInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireRole("hr_reviewer");
   const parsed = screeningJobIdSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid job") };
@@ -180,6 +183,7 @@ export async function continueScreeningRemaining(
 export async function cancelScreening(
   input: ScreeningJobIdInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireRole("hr_reviewer");
   const parsed = screeningJobIdSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid job") };
@@ -216,6 +220,7 @@ export async function cancelScreening(
 export async function getScreeningProgress(
   jobId: string,
 ): Promise<ActionResult<ScreeningProgress>> {
+  await requireRole("viewer");
   const parsed = screeningJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid job") };
@@ -313,6 +318,7 @@ export async function getScreeningProgress(
 export async function getJobResults(
   jobId: string,
 ): Promise<ActionResult<JobResults>> {
+  await requireRole("viewer");
   const parsed = screeningJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid job") };
@@ -397,6 +403,7 @@ export async function getJobResults(
 export async function getCvDetail(
   input: ScreeningCvIdInput,
 ): Promise<ActionResult<CvDetail>> {
+  await requireRole("viewer");
   const parsed = screeningCvIdSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode("Invalid request") };
@@ -459,6 +466,7 @@ export async function getCvDetail(
 export async function rerankJob(
   input: RerankInput,
 ): Promise<ActionResult<JobResults>> {
+  await requireRole("hr_reviewer");
   const parsed = rerankSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid weights") };
@@ -515,6 +523,7 @@ export async function rerankJob(
 export async function cloneJobWithCvs(
   input: CloneJobInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireRole("hr_reviewer");
   const parsed = cloneJobSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid request") };

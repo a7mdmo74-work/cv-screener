@@ -21,6 +21,7 @@ export async function generateStructured<T>(
     numCtx?: number;
     timeoutMs?: number;
     maxAttempts?: number;
+    temperature?: number;
   },
 ): Promise<T> {
   const format = zodToJsonSchema(schema);
@@ -45,7 +46,7 @@ export async function generateStructured<T>(
         ...(useThinkFlag ? { think: false as const } : {}),
         stream: false,
         options: {
-          temperature: 0,
+          temperature: options.temperature ?? 0,
           num_ctx: options.numCtx ?? 8192,
         },
       });

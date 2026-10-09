@@ -1,3 +1,4 @@
+import { routeAccess } from "@/lib/auth/server";
 import { requestLocale } from "@/i18n/request-locale";
 import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
@@ -9,6 +10,9 @@ import { parseRubric } from "@/lib/schemas/rubric";
 import { rankJobCandidates } from "@/lib/screening/results";
 
 export async function GET(request: Request) {
+  const denied = await routeAccess(request, "viewer");
+  if (denied) return denied;
+
   await connection();
   const locale = await requestLocale(request);
   const t = await getTranslations({locale,namespace:"errors"});
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
 
   return new Response(new Uint8Array(buffer), {
     headers: {
+        "Cache-Control": "private, no-store",
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="${encoded}"; filename*=UTF-8''${encoded}`,

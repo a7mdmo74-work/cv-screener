@@ -1,20 +1,16 @@
 "use client";
+import { jobStatusKeys } from "@/i18n/labels";
+import { uiLabel } from "@/i18n/labels";
 
-import Link from "next/link";
+import { useTranslations, useFormatter } from "next-intl";
+
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
-import { inputClassName, secondaryButtonClassName } from "@/components/wizard/styles";
+import { deleteJobs } from "@/actions/jobs";
+import { errorText } from "@/i18n/errors";
+import { inputClassName } from "@/components/wizard/styles";
 import type { JobListItem } from "@/actions/jobs";
 import type { JobStatus } from "@/lib/schemas/job";
-
-const statusLabel: Record<JobStatus, string> = {
-  draft: "Draft",
-  queued: "Queued",
-  running: "Running",
-  done: "Done",
-  partial: "Partial",
-  cancelled: "Cancelled",
-  failed: "Failed",
-};
 
 const statusFilters = [
   { id: "all", label: "All" },
@@ -46,8 +42,19 @@ function matchesStatus(status: JobStatus, filter: StatusFilter): boolean {
   return status === "cancelled" || status === "failed";
 }
 
-export function JobListClient({ jobs }: { jobs: JobListItem[] }) {
+export function JobListClient({
+  jobs,
+  canDelete,
+}: {
+  jobs: JobListItem[];
+  canDelete: boolean;
+}) {
+  const t = useTranslations();
+  const format = useFormatter();
+
   const [selected, setSelected] = useState<string[]>([]);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -66,25 +73,54 @@ export function JobListClient({ jobs }: { jobs: JobListItem[] }) {
       return terms.every((term) => job.title.toLowerCase().includes(term));
     });
   }, [jobs, query, statusFilter]);
-  const exportHref =
-    selected.length > 0
-      ? `/export/summary/docx?jobIds=${selected.join(",")}`
-      : null;
+
+  async function handleDeleteSelected() {
+    if (
+      selected.length === 0 ||
+      !window.confirm(t("jobs.confirm_delete_jobs", { count: selected.length }))
+    ) {
+      return;
+    }
+
+    setDeletePending(true);
+    setDeleteMessage(null);
+    try {
+      const result = await deleteJobs(selected);
+      if (!result.ok) {
+        setDeleteMessage(errorText(t, result.error));
+        return;
+      }
+      setSelected((current) =>
+        current.filter((id) => !result.data.deletedIds.includes(id)),
+      );
+      setDeleteMessage(
+        result.data.cleanupFailedIds.length > 0
+          ? t("jobs.delete_cleanup_warning", {
+              count: result.data.cleanupFailedIds.length,
+            })
+          : t("jobs.jobs_deleted", { count: result.data.deletedIds.length }),
+      );
+    } catch {
+      setDeleteMessage(errorText(t, "UNKNOWN"));
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <label className="w-full sm:max-w-sm">
-          <span className="mb-1 block text-xs font-medium text-zinc-500">Search jobs</span>
-          <input
+          <span className="mb-1 block text-xs font-medium text-muted">{t("jobs.search_jobs")}</span>
+          <input dir="auto"
             className={inputClassName}
             type="search"
-            placeholder="Job title"
+            placeholder={t("jobs.job_title")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Job status">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("jobs.job_status")}>
           {statusFilters.map((filter) => {
             const active = statusFilter === filter.id;
             return (
@@ -94,45 +130,50 @@ export function JobListClient({ jobs }: { jobs: JobListItem[] }) {
                 aria-pressed={active}
                 className={
                   active
-                    ? "rounded-full bg-zinc-900 px-3 py-1 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                    ? "rounded-full bg-accent px-3 py-1 text-sm font-medium text-accent-foreground"
+                    : "rounded-full border border-border-strong px-3 py-1 text-sm font-medium text-foreground hover:bg-surface-muted"
                 }
                 onClick={() => setStatusFilter(filter.id)}
               >
-                {filter.label}
+                {uiLabel(t, filter.label)}
               </button>
             );
           })}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Showing {visibleJobs.length} of {jobs.length}. Select jobs to export a
-          unified Word summary.
-        </p>
-        {exportHref ? (
-          <a href={exportHref} className={secondaryButtonClassName}>
-            Export unified summary (Word)
-          </a>
-        ) : (
-          <button className={secondaryButtonClassName} disabled type="button">
-            Export unified summary (Word)
+
+      {canDelete && selected.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted">
+            {t("jobs.selected_jobs", { count: selected.length })}
+          </p>
+          <button
+            type="button"
+            disabled={deletePending}
+            onClick={handleDeleteSelected}
+            className="inline-flex items-center justify-center rounded-lg border border-danger px-4 py-2 text-sm font-medium text-danger hover:bg-danger-bg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {deletePending ? t("jobs.deleting_jobs") : t("jobs.delete_selected")}
           </button>
-        )}
-      </div>
-      {visibleJobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
-          No jobs match this search.
         </div>
+      )}
+      {deleteMessage && (
+        <p role="status" className="rounded-lg border border-border bg-surface p-3 text-sm text-foreground">
+          {deleteMessage}
+        </p>
+      )}
+
+      {visibleJobs.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border-strong bg-surface p-8 text-sm text-muted">{t("jobs.no_jobs_match_this_search")}</div>
       ) : (
-      <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
+      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
         {visibleJobs.map((job) => {
           const checked = selectedSet.has(job.id);
           return (
             <li key={job.id} className="flex items-stretch">
               <label className="flex items-center px-4">
-                <span className="sr-only">Select {job.title}</span>
-                <input
+                <span className="sr-only">{t("common.select_item", {name: job.title})}</span>
+                <input dir="auto"
                   type="checkbox"
                   checked={checked}
                   onChange={(event) => {
@@ -146,26 +187,26 @@ export function JobListClient({ jobs }: { jobs: JobListItem[] }) {
               </label>
               <Link
                 href={`/jobs/${job.id}`}
-                className="flex flex-1 flex-col gap-2 px-2 py-4 hover:bg-zinc-50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-zinc-900"
+                className="flex flex-1 flex-col gap-2 px-2 py-4 hover:bg-surface-muted sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {job.title}
+                  <p className="font-medium text-foreground">
+                    <bdi>{job.title}</bdi>
                   </p>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    {job.cvCount} {job.cvCount === 1 ? "CV" : "CVs"}
-                    {job.twoPass ? " · Two-pass" : ""}
+                  <p className="mt-1 text-sm text-muted">
+                    {t("common.cv_count", {count: job.cvCount})}
+                    {job.twoPass ? t("jobs.two_pass") : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="rounded-full border border-zinc-200 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
-                    {statusLabel[job.status]}
+                  <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-foreground">
+                    {t(jobStatusKeys[job.status])}
                   </span>
                   <time
-                    className="text-zinc-500 dark:text-zinc-400"
+                    className="text-muted"
                     dateTime={job.createdAt}
                   >
-                    {job.createdAt.slice(0, 10)}
+                    {format.dateTime(new Date(job.createdAt), "standard")}
                   </time>
                 </div>
               </Link>
