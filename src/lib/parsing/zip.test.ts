@@ -3,6 +3,26 @@ import AdmZip from "adm-zip";
 import { extractCvsFromZip, isZipFile } from "@/lib/parsing/zip";
 
 describe("extractCvsFromZip", () => {
+  it("extracts multiple PDF CVs from a single ZIP archive", () => {
+    const zip = new AdmZip();
+    zip.addFile("applications/alice.pdf", Buffer.from("%PDF-1.4 alice"));
+    zip.addFile("applications/bob.pdf", Buffer.from("%PDF-1.4 bob"));
+    zip.addFile("carol.pdf", Buffer.from("%PDF-1.4 carol"));
+
+    const extracted = extractCvsFromZip(zip.toBuffer());
+
+    expect(extracted.map((item) => item.fileName).sort()).toEqual([
+      "alice.pdf",
+      "bob.pdf",
+      "carol.pdf",
+    ]);
+    expect(extracted.map((item) => item.bytes.toString())).toEqual([
+      "%PDF-1.4 alice",
+      "%PDF-1.4 bob",
+      "%PDF-1.4 carol",
+    ]);
+  });
+
   it("pulls PDF and DOCX files out of nested folders", () => {
     const zip = new AdmZip();
     zip.addFile("cv1.pdf", Buffer.from("%PDF-1.4"));

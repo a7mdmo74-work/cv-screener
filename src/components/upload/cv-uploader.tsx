@@ -6,10 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { uploadAndParseCvs } from "@/actions/cvs";
 import { startScreening } from "@/actions/screening";
-import {
-  primaryButtonClassName,
-  secondaryButtonClassName,
-} from "@/components/wizard/styles";
+import { primaryButtonClassName } from "@/components/wizard/styles";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { JobStatus, ParseStatus } from "@/lib/schemas/job";
 import {
   startScreeningSchema,
@@ -24,6 +23,32 @@ const statusLabel: Record<ParseStatus, string> = {
   needs_ocr: "Needs OCR",
   error: "Error",
 };
+
+function UploadMetric({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
+  const valueColor = {
+    neutral: "text-zinc-900 dark:text-zinc-50",
+    success: "text-emerald-700 dark:text-emerald-300",
+    warning: "text-amber-700 dark:text-amber-300",
+    danger: "text-red-700 dark:text-red-300",
+  }[tone];
+
+  return (
+    <Card className="p-3 sm:p-4">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">{label}</p>
+      <p className={`mt-1 text-xl font-semibold tabular-nums ${valueColor}`}>
+        {value}
+      </p>
+    </Card>
+  );
+}
 
 export function CvUploader({
   jobId,
@@ -137,7 +162,7 @@ export function CvUploader({
       ) : null}
 
       <section
-        className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center dark:border-zinc-700 dark:bg-zinc-950"
+        className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-6 text-center transition-colors hover:border-indigo-300 dark:border-indigo-900 dark:bg-indigo-950/20 dark:hover:border-indigo-700 sm:p-8"
         onDragOver={(event) => {
           event.preventDefault();
         }}
@@ -148,12 +173,15 @@ export function CvUploader({
           }
         }}
       >
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-          Drop PDF, DOCX, or ZIP files here
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-indigo-100 bg-white text-indigo-700 shadow-sm dark:border-indigo-900 dark:bg-zinc-950 dark:text-indigo-300">
+          <UploadIcon />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Drop candidate CVs here or choose files
         </p>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Add files in as many batches as you need before starting screening.
-          ZIP archives are unpacked (up to 500 MB). {MAX_UPLOAD_FILES} CVs max,
+        <p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+          Add files in batches before you start. PDF and DOCX are supported, as
+          well as ZIP archives (up to 500 MB). Maximum {MAX_UPLOAD_FILES} CVs,
           15 MB each.
         </p>
         <input
@@ -171,7 +199,7 @@ export function CvUploader({
           }}
         />
         <button
-          className={`${secondaryButtonClassName} mt-4`}
+          className={`${primaryButtonClassName} mt-4`}
           disabled={!draft || uploading || remainingSlots <= 0}
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -181,7 +209,7 @@ export function CvUploader({
             : remainingSlots <= 0
               ? "Upload limit reached"
               : cvs.length > 0
-                ? "Add more files"
+                  ? "Add more CVs"
                 : "Choose files"}
         </button>
         {progress ? (
@@ -189,52 +217,63 @@ export function CvUploader({
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex flex-wrap gap-3 border-b border-zinc-200 px-4 py-3 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-          <span>{cvs.length} uploaded</span>
-          <span>{counts.parsed} parsed</span>
-          <span>{counts.needs_ocr} need OCR</span>
-          <span>{counts.error} errors</span>
+      <section className="space-y-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <UploadMetric label="Uploaded" value={cvs.length} />
+          <UploadMetric label="Ready to screen" value={counts.parsed} tone="success" />
+          <UploadMetric label="Need OCR" value={counts.needs_ocr} tone="warning" />
+          <UploadMetric label="Errors" value={counts.error} tone="danger" />
         </div>
-        {cvs.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-zinc-500">
-            No CVs uploaded yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {cvs.map((cv) => (
-              <li
-                key={cv.id}
-                className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <span className="truncate font-medium">{cv.fileName}</span>
-                <span className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      cv.parseStatus === "parsed"
-                        ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                        : cv.parseStatus === "needs_ocr"
-                          ? "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-                          : "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200"
-                    }`}
-                  >
-                    {statusLabel[cv.parseStatus]}
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <h3 className="text-sm font-semibold">Candidate files</h3>
+            <Badge variant="secondary">{cvs.length} total</Badge>
+          </div>
+          {cvs.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Your candidate list is empty
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Uploaded CVs will appear here with their parsing status.
+              </p>
+            </div>
+          ) : (
+            <ul className="max-h-96 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800">
+              {cvs.map((cv) => (
+                <li
+                  key={cv.id}
+                  className="flex flex-col gap-2 px-4 py-3 text-sm transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span className="min-w-0 truncate font-medium">{cv.fileName}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Badge
+                      variant={
+                        cv.parseStatus === "parsed"
+                          ? "success"
+                          : cv.parseStatus === "needs_ocr"
+                            ? "warning"
+                            : "danger"
+                      }
+                    >
+                      {statusLabel[cv.parseStatus]}
+                    </Badge>
+                    {cv.error ? (
+                      <span className="max-w-xs truncate text-xs text-zinc-500">
+                        {cv.error}
+                      </span>
+                    ) : null}
                   </span>
-                  {cv.error ? (
-                    <span className="max-w-xs truncate text-xs text-zinc-500">
-                      {cv.error}
-                    </span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </section>
 
       {draft ? (
         <form
-          className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+          className="flex flex-col gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/60 p-4 dark:border-indigo-950 dark:from-zinc-950 dark:to-indigo-950/20 sm:p-5"
           onSubmit={form.handleSubmit((values) => {
             setError(null);
             startTransition(async () => {
@@ -248,10 +287,10 @@ export function CvUploader({
           })}
         >
           <div className="flex flex-1 flex-col gap-3 text-sm">
-            <label className="flex items-start gap-3">
+            <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white/80 p-3 dark:border-zinc-800 dark:bg-zinc-950/70">
               <input type="checkbox" disabled={starting} {...form.register("turboMode")} />
               <span>
-                <span className="font-medium">Turbo mode</span>
+                <span className="font-semibold">Turbo mode</span>
                 <span className="mt-0.5 block text-zinc-500 dark:text-zinc-400">
                   Fast free mode: Pass A ranks everyone, then turbo scores every
                   parsed CV with qwen3:4b. Use a Pass A cap only if you want a
@@ -319,7 +358,7 @@ export function CvUploader({
                 </label>
               </div>
             ) : (
-              <label className="flex items-start gap-3">
+              <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white/80 p-3 dark:border-zinc-800 dark:bg-zinc-950/70">
                 <input type="checkbox" disabled={starting} {...form.register("twoPass")} />
                 <span>
                   <span className="font-medium">Two-pass scoring</span>
@@ -344,5 +383,24 @@ export function CvUploader({
         </p>
       )}
     </div>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="1.7"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"
+      />
+    </svg>
   );
 }

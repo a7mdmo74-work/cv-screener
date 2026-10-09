@@ -20,6 +20,11 @@ import type {
 import { busyOllamaMessage } from "@/lib/wizard/fallback-rubric";
 
 const steps = ["Description", "Questions", "Rubric"] as const;
+const stepDescriptions = [
+  "Define the role",
+  "Clarify priorities",
+  "Review criteria",
+] as const;
 
 export const DEFAULT_JOB_DETAILS: JobDescriptionInput = {
   title: "",
@@ -102,25 +107,46 @@ export function JobWizard({
 
   return (
     <div className="space-y-6">
-      <ol className="grid grid-cols-3 gap-2 text-sm">
+      <ol
+        aria-label="Screening setup progress"
+        className="grid grid-cols-3 gap-2 border-b border-zinc-200 pb-5 dark:border-zinc-800"
+      >
         {steps.map((label, index) => {
           const current = index === step;
           const done = index < step;
           return (
             <li
               key={label}
-              className={`rounded-lg border px-3 py-2 text-center ${
-                current
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                  : done
-                    ? "border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-                    : "border-zinc-200 text-zinc-500 dark:border-zinc-800"
-              }`}
+              aria-current={current ? "step" : undefined}
+              className="min-w-0"
             >
-              <span className="block text-xs uppercase tracking-wide">
-                Step {index + 1}
-              </span>
-              {label}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    current
+                      ? "bg-indigo-700 text-white dark:bg-indigo-400 dark:text-zinc-950"
+                      : done
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                  }`}
+                >
+                  {done ? <CheckIcon /> : index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block truncate text-xs font-semibold sm:text-sm ${
+                      current
+                        ? "text-zinc-900 dark:text-zinc-50"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                  <span className="hidden text-[11px] text-zinc-500 dark:text-zinc-400 sm:block">
+                    {stepDescriptions[index]}
+                  </span>
+                </span>
+              </div>
             </li>
           );
         })}
@@ -236,5 +262,20 @@ export function JobWizard({
         />
       ) : null}
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-3.5 w-3.5"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4 10 4 4 8-8" />
+    </svg>
   );
 }

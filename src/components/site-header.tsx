@@ -13,10 +13,10 @@ export function SiteHeader({ children }: { children: ReactNode }) {
         </Link>
         <div className="flex items-center gap-4">
           <Link
-            href="/cv-scan"
+            href="/jobs/new"
             className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            CV ATS scan
+            New screening
           </Link>
           {children}
         </div>

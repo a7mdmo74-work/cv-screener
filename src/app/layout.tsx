@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CV Screener",
-  description: "Local AI CV screening with Ollama",
+  title: "Structured CV Screening",
+  description: "Consistent, role-specific candidate screening with Ollama",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
