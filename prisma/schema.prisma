@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum JobStatus {
+  draft
+  queued
+  running
+  done
+  cancelled
+  failed
+}
+
+enum ParseStatus {
+  pending
+  parsed
+  needs_ocr
+  error
+}
+
+enum StageStatus {
+  pending
+  extracted
+  scored
+  failed
+  not_screened_time_budget
+}
+
+model Job {
+  id                 String    @id @default(cuid())
+  title              String
+  description        String
+  rubricJson         String
+  status             JobStatus @default(draft)
+  twoPass            Boolean   @default(false)
+  turboMode          Boolean   @default(true)
+  turboSettingsJson  String    @default("{}")
+  screeningStartedAt DateTime?
+  deadlineAt         DateTime?
+  lockedConcurrency  Int?
+  cvsPerMinute       Float?
+  tokensPerSecond    Float?
+  createdAt          DateTime  @default(now())
+  cvs                Cv[]
+}
+
+model Cv {
+  id               String      @id @default(cuid())
+  jobId            String
+  job              Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  fileName         String
+  filePath         String
+  contentHash      String?
+  rawText          String      @default("")
+  pagesJson        String      @default("[]")
+  anonymizedText   String      @default("")
+  contactJson      String      @default("{}")
+  parseStatus      ParseStatus @default(pending)
+  extractionJson   String?
+  scoreJson        String?
+  turboJson        String?
+  passAScore       Float?
+  totalScore       Float?
+  promptTokens     Int?
+  completionTokens Int?
+  stageStatus      StageStatus @default(pending)
+  error            String?
+
+  @@index([jobId, totalScore])
+  @@index([contentHash])
+}

@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  serverExternalPackages: ["better-sqlite3", "pdf-parse", "mammoth", "adm-zip"],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "500mb",
+    },
+  },
   turbopack: {
     rules: {
       "*.css": {
