@@ -152,3 +152,15 @@ describe("buildJobWorkbook", () => {
     expect(headers.at(-1)).toBe("CV file name");
   });
 });
+
+it("exports Arabic headers and RTL views without translating user data", async () => {
+  const workbook = await buildJobWorkbook("Site engineer",rubric,results(false),"all","ar");
+  for (const sheet of workbook.worksheets) expect(sheet.views[0].rightToLeft).toBe(true);
+  const detail=workbook.worksheets[1];
+  expect(headerValues(detail)[0]).toBe("الترتيب");
+  expect(headerValues(detail)[2]).toBe("الدرجة %");
+  expect(detail.getCell("B2").value).toBe("Candidate a");
+  expect(detail.getCell("J2").value).toBe("Site engineer");
+  const buffer=await workbook.xlsx.writeBuffer();
+  expect(Buffer.from(buffer).subarray(0,2).toString()).toBe("PK");
+});

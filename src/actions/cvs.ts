@@ -1,4 +1,5 @@
 "use server";
+import { errorCode } from "@/i18n/errors";
 
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -45,7 +46,7 @@ export async function listCvs(
 ): Promise<ActionResult<CvListItem[]>> {
   const parsed = uploadJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   try {
@@ -54,7 +55,7 @@ export async function listCvs(
       select: { id: true },
     });
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     const cvs = await prisma.cv.findMany({
@@ -72,7 +73,7 @@ export async function listCvs(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load uploaded CVs";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -83,7 +84,7 @@ export async function uploadAndParseCvs(
     jobId: formData.get("jobId"),
   });
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   const jobId = parsed.data.jobId;
@@ -92,7 +93,7 @@ export async function uploadAndParseCvs(
     .filter((value): value is File => value instanceof File && value.size > 0);
 
   if (files.length === 0) {
-    return { ok: false, error: "Choose at least one PDF, DOCX, or ZIP file" };
+    return { ok: false, error: errorCode("Choose at least one PDF, DOCX, or ZIP file") };
   }
 
   try {
@@ -102,18 +103,18 @@ export async function uploadAndParseCvs(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     if (job.status !== "draft") {
-      return { ok: false, error: "CVs can only be added while the job is a draft" };
+      return { ok: false, error: errorCode("CVs can only be added while the job is a draft") };
     }
 
     const remaining = MAX_UPLOAD_FILES - job._count.cvs;
     if (remaining <= 0) {
       return {
         ok: false,
-        error: `A job can include at most ${MAX_UPLOAD_FILES} CVs`,
+        error: "UPLOAD_LIMIT", errorParams: { max: MAX_UPLOAD_FILES },
       };
     }
 
@@ -278,13 +279,13 @@ export async function uploadAndParseCvs(
       }
     }
 
-    revalidatePath(`/jobs/${jobId}`);
-    revalidatePath(`/jobs/${jobId}/upload`);
+    revalidatePath("/[locale]/jobs/[id]", "page");
+    revalidatePath("/[locale]/jobs/[id]/upload", "page");
     return { ok: true, data: { cvs: created, skipped } };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to upload CVs";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 

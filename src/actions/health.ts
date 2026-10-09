@@ -1,4 +1,5 @@
 "use server";
+import { errorCode } from "@/i18n/errors";
 
 import { connection } from "next/server";
 import { checkOllamaHealth, type OllamaHealth } from "@/lib/llm/health";
@@ -12,6 +13,6 @@ export async function getOllamaHealth(): Promise<ActionResult<OllamaHealth>> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to check Ollama health";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }

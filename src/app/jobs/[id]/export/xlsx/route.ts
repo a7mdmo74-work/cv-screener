@@ -1,3 +1,5 @@
+import { requestLocale } from "@/i18n/request-locale";
+import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { prisma } from "@/db/client";
 import { buildJobWorkbook } from "@/lib/export/excel";
@@ -13,6 +15,8 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   await connection();
+  const locale = await requestLocale(request);
+  const t = await getTranslations({locale,namespace:"errors"});
   const { id } = await context.params;
   const scope = exportScopeSchema.catch("all").parse(
     new URL(request.url).searchParams.get("scope") ?? "all",
@@ -23,7 +27,7 @@ export async function GET(
     include: { cvs: true },
   });
   if (!job) {
-    return new Response("Screening job not found", { status: 404 });
+    return new Response(t("JOB_NOT_FOUND"), { status: 404 });
   }
 
   const rubric = parseRubric(JSON.parse(job.rubricJson));
@@ -66,6 +70,7 @@ export async function GET(
       notScreened,
     },
     scope,
+    locale,
   );
 
   const buffer = Buffer.from(await workbook.xlsx.writeBuffer());

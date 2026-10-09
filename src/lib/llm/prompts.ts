@@ -6,6 +6,10 @@ import {
 } from "@/lib/schemas/rubric";
 import type { JobDescriptionInput, ClarifyingAnswer } from "@/lib/schemas/wizard";
 
+export function outputLanguageRule(outputLanguage: "ar" | "en" = "en") {
+  return `Write generated narrative and questions in ${outputLanguage === "ar" ? "professional Modern Standard Arabic" : "English"}. Keep JSON keys, identifiers, candidate names, user-supplied job titles, and technical terms (ATS, ERP, Zoho, VAT) unchanged. Never translate stored input data or change scoring rules.`;
+}
+
 export const SENIOR_HR_MANAGER_ROLE = [
   "You are a senior HR manager screening candidates for roles in the United Arab Emirates.",
   "Think like a hiring manager who must recommend a shortlist of 15 people for interview.",
@@ -27,6 +31,7 @@ export function clarifyingQuestionsPrompt(input: JobDescriptionInput): {
   return {
     system: [
       SENIOR_HR_MANAGER_ROLE,
+      outputLanguageRule(input.outputLanguage),
       "Ask the clarifying questions you would need before you would hire for this role.",
       LLM_GROUNDING_RULES,
       "Ask at most 8 questions, and fewer when the description is already specific.",
@@ -54,6 +59,7 @@ export function rubricPrompt(input: {
   employmentType: string;
   seniorityLevel: string;
   answers: ClarifyingAnswer[];
+  outputLanguage?: "ar" | "en";
 }): { system: string; user: string } {
   const answered = input.answers
     .filter((item) => item.answer.trim().length > 0)
@@ -67,6 +73,7 @@ export function rubricPrompt(input: {
   return {
     system: [
       SENIOR_HR_MANAGER_ROLE,
+      outputLanguageRule(input.outputLanguage),
       "Turn the job description and clarifying answers into the conservative rubric you would use to hire.",
       LLM_GROUNDING_RULES,
       `Weights are integers that sum to 100 across: ${weightList}.`,
@@ -134,6 +141,7 @@ export function extractExperiencePrompt(pagedText: string): {
 export function scoreCandidatePrompt(
   candidate: ScoringProfile,
   rubric: Rubric,
+  outputLanguage: "ar" | "en" = "en",
 ): { system: string; user: string } {
   const criteria = SCORE_CRITERIA.map(
     (key) => `${key} (${CRITERION_LABELS[key]}, weight ${rubric.weights[key]})`,
@@ -142,6 +150,7 @@ export function scoreCandidatePrompt(
   return {
     system: [
       SENIOR_HR_MANAGER_ROLE,
+      outputLanguageRule(outputLanguage),
       "Score this anonymized profile the way you would before putting someone on a 15-person interview shortlist.",
       LLM_GROUNDING_RULES,
       "Score each criterion from 0 to 10 with short evidence that is explicitly present.",
@@ -149,7 +158,7 @@ export function scoreCandidatePrompt(
       "dataQuality is informational only and must not affect scores.",
       "Do not use name, phone, email, LinkedIn, nationality, age, gender, marital status, or photos.",
       "Set dealBreakerHit true only when an explicit deal-breaker in the rubric is clearly present.",
-      "Write strengths, risksAndGaps, verificationPoints, and recommendationNarrative in English.",
+      "Write strengths, risksAndGaps, verificationPoints, and recommendationNarrative in the requested output language.",
       "verificationPoints must be 3 to 6 candidate-specific questions derived from gaps and inconsistencies.",
       "recommendationNarrative must be 2-3 sentences and end with what to verify before the decision.",
       "Do not compute a total, rank, salary, or recommendation tier.",

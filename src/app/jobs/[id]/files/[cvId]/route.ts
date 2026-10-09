@@ -1,3 +1,5 @@
+import { requestLocale } from "@/i18n/request-locale";
+import { getTranslations } from "next-intl/server";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { connection } from "next/server";
@@ -11,10 +13,12 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string; cvId: string }> },
 ) {
   await connection();
+  const locale = await requestLocale(request);
+  const t = await getTranslations({locale,namespace:"errors"});
   const { id, cvId } = await context.params;
   const cv = await prisma.cv.findFirst({
     where: { id: cvId, jobId: id },
@@ -22,13 +26,13 @@ export async function GET(
   });
 
   if (!cv || !cv.filePath) {
-    return new Response("CV file not found", { status: 404 });
+    return new Response(t("FILE_NOT_FOUND"), { status: 404 });
   }
 
   const allowedRoot = path.resolve(uploadDirForJob(id));
   const resolved = path.resolve(cv.filePath);
   if (!resolved.startsWith(`${allowedRoot}${path.sep}`)) {
-    return new Response("CV file not found", { status: 404 });
+    return new Response(t("FILE_NOT_FOUND"), { status: 404 });
   }
 
   try {
@@ -41,6 +45,6 @@ export async function GET(
       },
     });
   } catch {
-    return new Response("CV file not found", { status: 404 });
+    return new Response(t("FILE_NOT_FOUND"), { status: 404 });
   }
 }

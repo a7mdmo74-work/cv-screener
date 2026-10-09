@@ -10,9 +10,10 @@ export async function scoreCandidate(
   model: string,
   candidate: Candidate,
   rubric: Rubric,
+  outputLanguage: "ar" | "en" = rubric.outputLanguage ?? "en",
 ): Promise<ScoreResult> {
   const profile = scoringPayloadFromCandidate(candidate);
-  const prompt = scoreCandidatePrompt(profile, rubric);
+  const prompt = scoreCandidatePrompt(profile, rubric, outputLanguage);
   return generateStructured(scoreResultSchema, {
     model,
     system: prompt.system,

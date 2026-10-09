@@ -58,3 +58,13 @@ describe("buildUnifiedSummaryDocx", () => {
     expect(buffer.subarray(0, 2).toString()).toBe("PK");
   });
 });
+
+it("exports Arabic static text and bidirectional paragraphs", async () => {
+  const buffer=await buildUnifiedSummaryDocx({locale:"ar",jobs:[{title:"Site engineer",rubric,scoredCount:0,top15:[]}]});
+  const {default:AdmZip}=await import("adm-zip");
+  const xml=new AdmZip(buffer).readAsText("word/document.xml");
+  expect(xml).toContain("ملخص موحّد للفرز");
+  expect(xml).toContain("Site engineer");
+  expect(xml).toContain("w:bidi");
+  expect(xml).toContain("w:bidiVisual");
+});

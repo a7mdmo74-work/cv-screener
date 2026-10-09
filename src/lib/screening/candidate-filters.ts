@@ -1,3 +1,5 @@
+import { exportTranslator } from "@/i18n/export";
+import type { Locale } from "@/i18n/routing";
 import type { RecommendationTier } from "@/lib/schemas/score";
 import { SENIORITY_LEVEL_OPTIONS } from "@/lib/schemas/job-fields";
 
@@ -473,7 +475,8 @@ function csvCell(value: string): string {
   return value;
 }
 
-export function candidatesToCsv(rows: FilterableCandidate[]): string {
+export function candidatesToCsv(rows: FilterableCandidate[], locale: Locale = "en"): string {
+  const {label} = exportTranslator(locale);
   const headers = [
     "Rank",
     "Name",
@@ -488,7 +491,7 @@ export function candidatesToCsv(rows: FilterableCandidate[]): string {
     "Deal-breaker",
   ];
   const lines = [
-    headers.join(","),
+    headers.map(label).map(csvCell).join(","),
     ...rows.map((row, index) => {
       const years = candidateYears(row);
       return [
@@ -496,13 +499,13 @@ export function candidatesToCsv(rows: FilterableCandidate[]): string {
         row.name ?? "",
         row.fileName,
         candidateNationality(row),
-        candidateSeniority(row),
+        label(candidateSeniority(row)),
         years === null ? "" : String(years),
         candidateLocation(row),
         candidateTitle(row) ?? "",
         row.totalScore === null ? "" : String(row.totalScore),
-        recommendationLabel(row.recommendation),
-        row.dealBreakerHit ? "Yes" : "No",
+        label(recommendationLabel(row.recommendation)),
+        label(row.dealBreakerHit ? "Yes" : "No"),
       ]
         .map(csvCell)
         .join(",");
@@ -511,20 +514,21 @@ export function candidatesToCsv(rows: FilterableCandidate[]): string {
   return `\uFEFF${lines.join("\n")}`;
 }
 
-export function formatShortlist(rows: FilterableCandidate[]): string {
+export function formatShortlist(rows: FilterableCandidate[], locale: Locale = "en"): string {
   if (rows.length === 0) {
     return "";
   }
+  const {label} = exportTranslator(locale);
   const lines = rows.map((row, index) => {
     const years = candidateYears(row);
     return [
       `${index + 1}. ${row.name ?? row.fileName}`,
-      candidateTitle(row) ?? "Title not stated",
+      candidateTitle(row) ?? label("Title not stated"),
       candidateNationality(row),
-      candidateSeniority(row),
-      years === null ? "Years not stated" : `${years} years`,
-      row.totalScore === null ? "No score" : String(row.totalScore),
-      recommendationLabel(row.recommendation),
+      label(candidateSeniority(row)),
+      years === null ? label("Years not stated") : exportTranslator(locale).t("common.years", {count:years}),
+      row.totalScore === null ? label("No score") : String(row.totalScore),
+      label(recommendationLabel(row.recommendation)),
     ].join(" | ");
   });
   return lines.join("\n");

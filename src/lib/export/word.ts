@@ -1,3 +1,5 @@
+import { exportTranslator, salaryText } from "@/i18n/export";
+import type { Locale } from "@/i18n/routing";
 import {
   AlignmentType,
   Document,
@@ -26,7 +28,7 @@ const COLS = [
   "Suggested salary",
 ] as const;
 
-function cell(text: string, header = false): TableCell {
+function cell(text: string, header = false, locale: Locale = "en"): TableCell {
   return new TableCell({
     width: { size: 16, type: WidthType.PERCENTAGE },
     verticalAlign: VerticalAlign.TOP,
@@ -36,7 +38,8 @@ function cell(text: string, header = false): TableCell {
     margins: { top: 60, bottom: 60, left: 80, right: 80 },
     children: [
       new Paragraph({
-        alignment: AlignmentType.LEFT,
+        alignment: locale === "ar" ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        bidirectional: locale === "ar",
         children: [
           new TextRun({
             text,
@@ -51,10 +54,11 @@ function cell(text: string, header = false): TableCell {
   });
 }
 
-function headerRow(): TableRow {
+function headerRow(locale: Locale): TableRow {
+  const {label} = exportTranslator(locale);
   return new TableRow({
     tableHeader: true,
-    children: COLS.map((label) => cell(label, true)),
+    children: COLS.map((text) => cell(label(text), true, locale)),
   });
 }
 
@@ -63,6 +67,7 @@ function uniqueJoin(values: string[]): string {
 }
 
 export async function buildUnifiedSummaryDocx(input: {
+  locale?: Locale;
   jobs: Array<{
     title: string;
     rubric: Rubric;
@@ -70,18 +75,20 @@ export async function buildUnifiedSummaryDocx(input: {
     scoredCount: number;
   }>;
 }): Promise<Buffer> {
-  const first = input.jobs[0];
+  const locale = input.locale ?? "en";
+  const {t,label} = exportTranslator(locale);
   const scopes = uniqueJoin(input.jobs.map((job) => job.rubric.geographicScope));
   const types = uniqueJoin(input.jobs.map((job) => job.rubric.employmentType));
   const levels = uniqueJoin(input.jobs.map((job) => job.rubric.seniorityLevel));
 
   const children: Array<Paragraph | Table> = [
     new Paragraph({
+      bidirectional: locale === "ar",
       alignment: AlignmentType.CENTER,
       heading: HeadingLevel.TITLE,
       children: [
         new TextRun({
-          text: "Unified screening summary — United Arab Emirates",
+          text: label("Unified screening summary — United Arab Emirates"),
           font: "Arial",
           bold: true,
           size: 36,
@@ -89,11 +96,12 @@ export async function buildUnifiedSummaryDocx(input: {
       ],
     }),
     new Paragraph({
-      alignment: AlignmentType.LEFT,
+      alignment: locale === "ar" ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: locale === "ar",
       spacing: { after: 300 },
       children: [
         new TextRun({
-          text: `Location: ${scopes || displayValue(first?.rubric.geographicScope)} | Employment: ${types || displayValue(first?.rubric.employmentType)} | Seniority: ${levels || displayValue(first?.rubric.seniorityLevel)}`,
+          text: t("export.metadata", {location:scopes||label("Not stated"),employment:types||label("Not stated"),seniority:levels||label("Not stated")}),
           font: "Arial",
           size: 22,
         }),
@@ -104,12 +112,13 @@ export async function buildUnifiedSummaryDocx(input: {
   for (const job of input.jobs) {
     children.push(
       new Paragraph({
-        alignment: AlignmentType.LEFT,
+        alignment: locale === "ar" ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: locale === "ar",
         heading: HeadingLevel.HEADING_1,
         spacing: { before: 240, after: 120 },
         children: [
           new TextRun({
-            text: `${job.title} (${job.scoredCount} candidates)`,
+            text: t("export.job_title_count", {title:job.title,count:job.scoredCount}),
             font: "Arial",
             bold: true,
             size: 28,
@@ -120,19 +129,20 @@ export async function buildUnifiedSummaryDocx(input: {
 
     children.push(
       new Table({
+        visuallyRightToLeft: locale === "ar",
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
-          headerRow(),
+          headerRow(locale),
           ...job.top15.map(
             (row, index) =>
               new TableRow({
                 children: [
-                  cell(String(index + 1)),
-                  cell(displayValue(row.name)),
-                  cell(row.totalScore === null ? displayValue(null) : String(row.totalScore)),
-                  cell(displayValue(row.currentTitle)),
-                  cell(displayValue(row.totalExperienceText)),
-                  cell(displayValue(row.suggestedSalary)),
+                  cell(String(index + 1), false, locale),
+                  cell(displayValue(row.name), false, locale),
+                  cell(row.totalScore === null ? label("Not stated") : String(row.totalScore), false, locale),
+                  cell(displayValue(row.currentTitle), false, locale),
+                  cell(displayValue(row.totalExperienceText), false, locale),
+                  cell(salaryText(row.suggestedSalary, locale), false, locale),
                 ],
               }),
           ),
@@ -143,12 +153,13 @@ export async function buildUnifiedSummaryDocx(input: {
 
   children.push(
     new Paragraph({
-      alignment: AlignmentType.LEFT,
+      alignment: locale === "ar" ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: locale === "ar",
       heading: HeadingLevel.HEADING_1,
       spacing: { before: 360 },
       children: [
         new TextRun({
-          text: "Notice",
+          text: label("Notice"),
           font: "Arial",
           bold: true,
           size: 28,
@@ -156,10 +167,11 @@ export async function buildUnifiedSummaryDocx(input: {
       ],
     }),
     new Paragraph({
-      alignment: AlignmentType.LEFT,
+      alignment: locale === "ar" ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: locale === "ar",
       children: [
         new TextRun({
-          text: "These are initial ranking results from CVs only. Open each job’s Excel file for contact details, gaps, evidence, and interview questions.",
+          text: label("These are initial ranking results from CVs only. Open each job’s Excel file for contact details, gaps, evidence, and interview questions."),
           font: "Arial",
           size: 22,
         }),

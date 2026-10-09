@@ -1,3 +1,5 @@
+import { exportTranslator, salaryText } from "@/i18n/export";
+import type { Locale } from "@/i18n/routing";
 import { SCORE_CRITERIA } from "@/lib/schemas/rubric";
 import type { RankedCandidate } from "@/lib/schemas/screening";
 
@@ -14,7 +16,8 @@ function criterionScore(row: RankedCandidate, key: string): string {
   return match ? String(match.score) : "";
 }
 
-export function buildResultsCsv(rows: RankedCandidate[]): string {
+export function buildResultsCsv(rows: RankedCandidate[], locale: Locale = "en"): string {
+  const {label, t} = exportTranslator(locale);
   const header = [
     "rank",
     "name",
@@ -29,7 +32,8 @@ export function buildResultsCsv(rows: RankedCandidate[]): string {
     "strengths",
   ];
 
-  const lines = [header.join(",")];
+  const headerLabels: Record<string,string> = {rank:"Rank",name:"Name",fileName:"File name",totalScore:"Score",recommendation:"Recommendation",dealBreakerHit:"Deal-breaker",location:"Location",yearsExperience:"Years",suggestedSalary:"Suggested salary",strengths:"Strengths"};
+  const lines = [header.map(key=>csvCell(locale === "en" ? key : headerLabels[key] ? label(headerLabels[key]) : t(`status.${key as typeof SCORE_CRITERIA[number]}`))).join(",")];
   rows.forEach((row, index) => {
     lines.push(
       [
@@ -37,16 +41,16 @@ export function buildResultsCsv(rows: RankedCandidate[]): string {
         csvCell(row.name),
         csvCell(row.fileName),
         csvCell(row.totalScore),
-        csvCell(row.recommendation),
+        csvCell(row.recommendation ? label(row.recommendation) : ""),
         ...SCORE_CRITERIA.map((key) => csvCell(criterionScore(row, key))),
         csvCell(row.dealBreakerHit),
         csvCell(row.location),
         csvCell(row.totalYearsExperience),
-        csvCell(row.suggestedSalary),
+        csvCell(salaryText(row.suggestedSalary, locale)),
         csvCell(row.strengths),
       ].join(","),
     );
   });
 
-  return `${lines.join("\n")}\n`;
+  return `\uFEFF${lines.join("\n")}\n`;
 }

@@ -15,6 +15,7 @@ export const jobDescriptionSchema = z.object({
   geographicScope: z.string().trim().min(1, "Enter the geographic scope").max(200),
   employmentType: z.string().trim().min(1, "Enter the employment type").max(100),
   seniorityLevel: z.string().trim().min(1, "Enter the seniority level").max(100),
+  outputLanguage: z.enum(["ar", "en"]).optional(),
   includeNationalityColumn: z.boolean(),
 });
 

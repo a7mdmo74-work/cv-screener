@@ -1,6 +1,9 @@
+import { exportTranslator, salaryText } from "@/i18n/export";
+import type { Locale } from "@/i18n/routing";
+import { errorCode } from "@/i18n/errors";
+import { recommendationTier } from "@/lib/ranking/rank";
 import ExcelJS from "exceljs";
 import {
-  CRITERION_LABELS,
   SCORE_CRITERIA,
   type Rubric,
 } from "@/lib/schemas/rubric";
@@ -11,11 +14,9 @@ import {
   HEADER_FONT,
   LABEL_FILL,
   LABEL_FONT,
-  MISSING_AR,
   displayValue,
   joinList,
 } from "@/lib/export/format";
-import { arabicRecommendationTier } from "@/lib/screening/arabic-templates";
 import { GENERIC_INTERVIEW_ROWS } from "@/lib/export/interview";
 
 export const DETAIL_HEADERS = [
@@ -126,15 +127,17 @@ function detailRow(
   row: RankedCandidate,
   rank: number,
   includeNationality: boolean,
+  locale: Locale,
 ): Array<string | number> {
   const candidate = row.candidate;
-  const missing = MISSING_AR;
+  const {label} = exportTranslator(locale);
+  const missing = label("Not stated");
   const values: Array<string | number> = [
     rank,
     displayValue(row.name, missing),
     row.totalScore ?? 0,
     displayValue(
-      row.totalScore == null ? null : arabicRecommendationTier(row.totalScore),
+      row.totalScore == null ? null : label(recommendationTier(row.totalScore)),
       missing,
     ),
     displayValue(candidate?.phone, missing),
@@ -174,7 +177,7 @@ function detailRow(
     displayValue(row.risksAndGaps, missing),
     displayValue(candidate?.availabilityNotice, missing),
     displayValue(candidate?.expectedSalary, missing),
-    displayValue(row.suggestedSalary, missing),
+    salaryText(row.suggestedSalary, locale),
     displayValue(candidate?.dataQualityNote, missing),
     displayValue(candidate?.evidencePages, missing),
     displayValue(row.fileName, missing),
@@ -210,18 +213,20 @@ export async function buildJobWorkbook(
   rubric: Rubric,
   results: JobResults,
   scope: "all" | "top15",
+  locale: Locale = "en",
 ): Promise<ExcelJS.Workbook> {
+  const { t, label } = exportTranslator(locale);
   const workbook = new ExcelJS.Workbook();
   const scored = results.all.filter((row) => row.stageStatus === "scored");
   const rows = scope === "top15" ? scored.slice(0, SHORTLIST_LIMIT) : scored;
   const includeNationality = rubric.includeNationalityColumn;
   const headers = detailHeaders(includeNationality);
 
-  const summary = workbook.addWorksheet(EXCEL_SHEET_NAMES[0]);
+  const summary = workbook.addWorksheet(label(EXCEL_SHEET_NAMES[0]));
   applyView(summary);
   summary.mergeCells("A1:F1");
   const titleCell = summary.getCell("A1");
-  titleCell.value = `Candidate ranking: ${jobTitle} — United Arab Emirates`;
+  titleCell.value = t("export.ranking_title", {title:jobTitle});
   titleCell.font = {
     name: "Calibri",
     size: 16,
@@ -237,7 +242,7 @@ export async function buildJobWorkbook(
   summary.getRow(1).height = 28;
 
   const methodology = SCORE_CRITERIA.map(
-    (key) => `${CRITERION_LABELS[key]} (${rubric.weights[key]})`,
+    (key) => `${t(`status.${key}`)} (${rubric.weights[key]})`,
   ).join("; ");
   const topNames = results.top15
     .slice(0, SHORTLIST_LIMIT)
@@ -265,8 +270,8 @@ export async function buildJobWorkbook(
     summary.mergeCells(`B${rowNumber}:F${rowNumber}`);
     const labelCell = summary.getCell(`A${rowNumber}`);
     const valueCell = summary.getCell(`B${rowNumber}`);
-    labelCell.value = label;
-    valueCell.value = value;
+    labelCell.value = exportTranslator(locale).label(label);
+    valueCell.value = label === "Notice" || label === "Privacy and fairness" ? exportTranslator(locale).label(String(value)) : value;
     labelCell.font = { name: "Calibri", size: 11, bold: true, color: { argb: `FF${LABEL_FONT}` } };
     labelCell.fill = {
       type: "pattern",
@@ -281,11 +286,11 @@ export async function buildJobWorkbook(
   summary.getColumn(1).width = 28;
   summary.getColumn(2).width = 80;
 
-  const detail = workbook.addWorksheet(EXCEL_SHEET_NAMES[1]);
+  const detail = workbook.addWorksheet(label(EXCEL_SHEET_NAMES[1]));
   applyView(detail, true);
-  writeHeaderRow(detail, headers);
+  writeHeaderRow(detail, headers.map(label));
   rows.forEach((row, index) => {
-    writeBodyRow(detail, index + 2, detailRow(row, index + 1, includeNationality));
+    writeBodyRow(detail, index + 2, detailRow(row, index + 1, includeNationality, locale));
   });
   detail.autoFilter = {
     from: { row: 1, column: 1 },
@@ -327,9 +332,9 @@ export async function buildJobWorkbook(
       column.width = 22;
     }
   });
-  const shortlist = workbook.addWorksheet(EXCEL_SHEET_NAMES[2]);
+  const shortlist = workbook.addWorksheet(label(EXCEL_SHEET_NAMES[2]));
   applyView(shortlist, true);
-  writeHeaderRow(shortlist, SHORTLIST_HEADERS);
+  writeHeaderRow(shortlist, SHORTLIST_HEADERS.map(label));
   results.top15.forEach((row, index) => {
     writeBodyRow(shortlist, index + 2, [
       index + 1,
@@ -345,8 +350,8 @@ export async function buildJobWorkbook(
       (row.verificationPoints ?? []).length > 0
         ? (row.verificationPoints ?? []).join("\n")
         : displayValue(null),
-      displayValue(row.suggestedSalary),
-      displayValue(row.recommendation),
+      salaryText(row.suggestedSalary, locale),
+      row.recommendation ? label(row.recommendation) : label("Not stated"),
     ]);
   });
   SHORTLIST_HEADERS.forEach((header, index) => {
@@ -354,11 +359,11 @@ export async function buildJobWorkbook(
       header === "Name" ? 28 : header === "Recommendation" ? 46 : 32;
   });
 
-  const interview = workbook.addWorksheet(EXCEL_SHEET_NAMES[3]);
+  const interview = workbook.addWorksheet(label(EXCEL_SHEET_NAMES[3]));
   applyView(interview);
-  writeHeaderRow(interview, ["Theme", "Suggested verification questions"]);
+  writeHeaderRow(interview, ["Theme", "Suggested verification questions"].map(label));
   GENERIC_INTERVIEW_ROWS.forEach((item, index) => {
-    writeBodyRow(interview, index + 2, [item.axis, item.questions]);
+    writeBodyRow(interview, index + 2, [label(item.axis), label(item.questions)]);
   });
   results.top15.forEach((row, index) => {
     writeBodyRow(interview, GENERIC_INTERVIEW_ROWS.length + 2 + index, [
@@ -371,14 +376,14 @@ export async function buildJobWorkbook(
 
   const skipped = [...results.unparsed, ...results.notScreened];
   if (skipped.length > 0) {
-    const failed = workbook.addWorksheet(EXCEL_SHEET_NAMES[4]);
+    const failed = workbook.addWorksheet(label(EXCEL_SHEET_NAMES[4]));
     applyView(failed, true);
-    writeHeaderRow(failed, ["File name", "Status", "Reason"]);
+    writeHeaderRow(failed, ["File name", "Status", "Reason"].map(label));
     skipped.forEach((cv, index) => {
       writeBodyRow(failed, index + 2, [
         cv.fileName,
-        cv.parseStatus === "parsed" ? cv.stageStatus : cv.parseStatus,
-        displayValue(cv.error),
+        t(`status.${cv.parseStatus === "parsed" ? cv.stageStatus : cv.parseStatus}`),
+        cv.error ? t(`errors.${errorCode(cv.error)}`) : label("Not stated"),
       ]);
     });
     failed.getColumn(1).width = 40;
@@ -386,6 +391,7 @@ export async function buildJobWorkbook(
     failed.getColumn(3).width = 60;
   }
 
+  for (const sheet of workbook.worksheets) { sheet.views = sheet.views.map(view => ({...view, rightToLeft: locale === "ar"})); }
   return workbook;
 }
 

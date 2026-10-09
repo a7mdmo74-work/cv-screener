@@ -1,3 +1,5 @@
+import { requestLocale } from "@/i18n/request-locale";
+import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { prisma } from "@/db/client";
 import { parseRubric } from "@/lib/schemas/rubric";
@@ -5,10 +7,12 @@ import { buildResultsCsv } from "@/lib/screening/csv";
 import { rankJobCandidates } from "@/lib/screening/results";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   await connection();
+  const locale = await requestLocale(request);
+  const t = await getTranslations({locale,namespace:"errors"});
   const { id } = await context.params;
   const job = await prisma.job.findUnique({
     where: { id },
@@ -30,12 +34,12 @@ export async function GET(
   });
 
   if (!job) {
-    return new Response("Screening job not found", { status: 404 });
+    return new Response(t("JOB_NOT_FOUND"), { status: 404 });
   }
 
   const rubric = parseRubric(JSON.parse(job.rubricJson));
   const ranked = rankJobCandidates(job.cvs, rubric);
-  const csv = buildResultsCsv(ranked);
+  const csv = buildResultsCsv(ranked, locale);
   const fileName = `${job.title.replace(/[^\w.-]+/g, "-").slice(0, 60) || "results"}.csv`;
 
   return new Response(csv, {

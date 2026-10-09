@@ -61,6 +61,7 @@ export const llmRubricSchema = z.object({
 });
 
 export const rubricSchema = llmRubricSchema.extend({
+  outputLanguage: z.enum(["en", "ar"]).optional(),
   geographicScope: z.string(),
   employmentType: z.string(),
   seniorityLevel: z.string(),
@@ -100,6 +101,7 @@ function cleanRequired(value: string, fallback: string): string {
 export function normalizeRubric(
   rubric: LlmRubric & Partial<Pick<
     Rubric,
+    | "outputLanguage"
     | "geographicScope"
     | "employmentType"
     | "seniorityLevel"
@@ -109,6 +111,7 @@ export function normalizeRubric(
   >>,
 ): Rubric {
   return {
+    outputLanguage: rubric.outputLanguage,
     mustHave: cleanList(rubric.mustHave),
     niceToHave: cleanList(rubric.niceToHave),
     minYearsExperience: rubric.minYearsExperience,
@@ -177,6 +180,7 @@ export function parseRubric(data: unknown): Rubric {
 export function mergeJobMetadata(
   rubric: LlmRubric | Rubric,
   metadata: {
+    outputLanguage?: "en" | "ar";
     geographicScope: string;
     employmentType: string;
     seniorityLevel: string;

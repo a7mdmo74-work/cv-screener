@@ -104,6 +104,7 @@ export function fallbackRubricFromJob(details: JobDescriptionInput): Rubric {
       weights: { ...DEFAULT_RUBRIC_WEIGHTS },
     },
     {
+      outputLanguage: details.outputLanguage,
       geographicScope: details.geographicScope,
       employmentType: details.employmentType,
       seniorityLevel: dualRole ? "Junior to Senior" : details.seniorityLevel,

@@ -1,4 +1,5 @@
 "use server";
+import { errorCode } from "@/i18n/errors";
 
 import { prisma } from "@/db/client";
 import type { ActionResult } from "@/lib/schemas/action";
@@ -39,7 +40,7 @@ export async function getJob(id: string): Promise<ActionResult<JobDetail>> {
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     let rubric: Rubric | null = null;
@@ -67,7 +68,7 @@ export async function getJob(id: string): Promise<ActionResult<JobDetail>> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load this screening job";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -103,6 +104,6 @@ export async function listJobs(): Promise<ActionResult<JobListItem[]>> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load screening jobs";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }

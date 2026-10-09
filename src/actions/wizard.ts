@@ -1,4 +1,5 @@
 "use server";
+import { errorCode } from "@/i18n/errors";
 
 import { revalidatePath } from "next/cache";
 import { connection } from "next/server";
@@ -36,7 +37,7 @@ export async function generateClarifyingQuestions(
 ): Promise<ActionResult<{ questions: string[] }>> {
   const parsed = jobDescriptionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid job details" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job details") };
   }
 
   try {
@@ -56,7 +57,7 @@ export async function generateClarifyingQuestions(
         : error instanceof Error
           ? error.message
           : "Unable to generate clarifying questions";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -66,12 +67,12 @@ export async function generateRubric(input: {
 }): Promise<ActionResult<{ rubric: Rubric; usedFallback: boolean }>> {
   const details = jobDescriptionSchema.safeParse(input.details);
   if (!details.success) {
-    return { ok: false, error: details.error.issues[0]?.message ?? "Invalid job details" };
+    return { ok: false, error: errorCode(details.error.issues[0]?.message ?? "Invalid job details") };
   }
 
   const answers = clarifyingAnswersSchema.safeParse({ answers: input.answers });
   if (!answers.success) {
-    return { ok: false, error: "Invalid clarifying answers" };
+    return { ok: false, error: errorCode("Invalid clarifying answers") };
   }
 
   try {
@@ -83,6 +84,7 @@ export async function generateRubric(input: {
       employmentType: details.data.employmentType,
       seniorityLevel: details.data.seniorityLevel,
       answers: answers.data.answers,
+      outputLanguage: details.data.outputLanguage,
     });
     const result = await generateStructured(llmRubricSchema, {
       model: llmConfig.extractModel,
@@ -94,6 +96,7 @@ export async function generateRubric(input: {
       ok: true,
       data: {
         rubric: mergeJobMetadata(result, {
+          outputLanguage: details.data.outputLanguage,
           geographicScope: details.data.geographicScope,
           employmentType: details.data.employmentType,
           seniorityLevel: details.data.seniorityLevel,
@@ -116,7 +119,7 @@ export async function generateRubric(input: {
     }
     const message =
       error instanceof Error ? error.message : "Unable to generate a rubric";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -125,7 +128,7 @@ export async function buildBasicRubric(
 ): Promise<ActionResult<{ rubric: Rubric; usedFallback: true }>> {
   const parsed = jobDescriptionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid job details" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job details") };
   }
 
   return {
@@ -139,7 +142,7 @@ export async function createJob(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = createJobInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid job" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid job") };
   }
 
   try {
@@ -155,12 +158,12 @@ export async function createJob(
       select: { id: true },
     });
 
-    revalidatePath("/");
-    revalidatePath(`/jobs/${job.id}`);
+    revalidatePath("/[locale]", "page");
+    revalidatePath("/[locale]/jobs/[id]", "page");
     return { ok: true, data: { id: job.id } };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to save the screening job";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }

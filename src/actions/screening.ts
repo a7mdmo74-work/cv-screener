@@ -1,4 +1,5 @@
 "use server";
+import { errorCode } from "@/i18n/errors";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/db/client";
@@ -43,9 +44,11 @@ import {
 } from "@/lib/screening/results";
 
 function revalidateJob(jobId: string) {
-  revalidatePath("/");
-  revalidatePath(`/jobs/${jobId}`);
-  revalidatePath(`/jobs/${jobId}/upload`);
+  revalidatePath("/[locale]", "page");
+  for (const locale of ["en", "ar"]) {
+    revalidatePath(`/${locale}/jobs/${jobId}`);
+    revalidatePath(`/${locale}/jobs/${jobId}/upload`);
+  }
 }
 
 export async function startScreening(
@@ -53,7 +56,7 @@ export async function startScreening(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = startScreeningSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid request") };
   }
 
   try {
@@ -69,17 +72,17 @@ export async function startScreening(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     if (job.status !== "draft") {
-      return { ok: false, error: "This job has already been started" };
+      return { ok: false, error: errorCode("This job has already been started") };
     }
 
     if (job._count.cvs === 0) {
       return {
         ok: false,
-        error: "Parse at least one CV before starting screening",
+        error: "NO_PARSED_CVS",
       };
     }
 
@@ -116,7 +119,7 @@ export async function startScreening(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to start screening";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -125,7 +128,7 @@ export async function continueScreeningRemaining(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = screeningJobIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   try {
@@ -133,7 +136,7 @@ export async function continueScreeningRemaining(
       where: { id: parsed.data.jobId },
     });
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     const remaining = await prisma.cv.count({
@@ -144,7 +147,7 @@ export async function continueScreeningRemaining(
       },
     });
     if (remaining === 0) {
-      return { ok: false, error: "No remaining CVs to screen" };
+      return { ok: false, error: errorCode("No remaining CVs to screen") };
     }
 
     const settings = parseTurboSettings(job.turboSettingsJson);
@@ -170,7 +173,7 @@ export async function continueScreeningRemaining(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to continue screening";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -179,7 +182,7 @@ export async function cancelScreening(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = screeningJobIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   try {
@@ -189,11 +192,11 @@ export async function cancelScreening(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     if (job.status !== "queued" && job.status !== "running") {
-      return { ok: false, error: "Only queued or running jobs can be cancelled" };
+      return { ok: false, error: errorCode("Only queued or running jobs can be cancelled") };
     }
 
     await prisma.job.update({
@@ -206,7 +209,7 @@ export async function cancelScreening(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to cancel screening";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -215,7 +218,7 @@ export async function getScreeningProgress(
 ): Promise<ActionResult<ScreeningProgress>> {
   const parsed = screeningJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   try {
@@ -229,7 +232,7 @@ export async function getScreeningProgress(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     const counts = {
@@ -303,7 +306,7 @@ export async function getScreeningProgress(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load screening progress";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -312,7 +315,7 @@ export async function getJobResults(
 ): Promise<ActionResult<JobResults>> {
   const parsed = screeningJobIdSchema.safeParse({ jobId });
   if (!parsed.success) {
-    return { ok: false, error: "Invalid job" };
+    return { ok: false, error: errorCode("Invalid job") };
   }
 
   try {
@@ -337,7 +340,7 @@ export async function getJobResults(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     const rubric = parseRubric(JSON.parse(job.rubricJson));
@@ -387,7 +390,7 @@ export async function getJobResults(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load screening results";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -396,7 +399,7 @@ export async function getCvDetail(
 ): Promise<ActionResult<CvDetail>> {
   const parsed = screeningCvIdSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid request" };
+    return { ok: false, error: errorCode("Invalid request") };
   }
 
   try {
@@ -405,7 +408,7 @@ export async function getCvDetail(
     });
 
     if (!cv) {
-      return { ok: false, error: "CV not found" };
+      return { ok: false, error: errorCode("CV not found") };
     }
 
     const job = await prisma.job.findUnique({
@@ -449,7 +452,7 @@ export async function getCvDetail(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to load this CV";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -458,7 +461,7 @@ export async function rerankJob(
 ): Promise<ActionResult<JobResults>> {
   const parsed = rerankSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid weights" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid weights") };
   }
 
   try {
@@ -476,7 +479,7 @@ export async function rerankJob(
     });
 
     if (!job) {
-      return { ok: false, error: "Screening job not found" };
+      return { ok: false, error: errorCode("Screening job not found") };
     }
 
     const rubric = parseRubric(JSON.parse(job.rubricJson));
@@ -505,7 +508,7 @@ export async function rerankJob(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to re-rank candidates";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }
 
@@ -514,7 +517,7 @@ export async function cloneJobWithCvs(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = cloneJobSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
+    return { ok: false, error: errorCode(parsed.error.issues[0]?.message ?? "Invalid request") };
   }
 
   try {
@@ -523,7 +526,7 @@ export async function cloneJobWithCvs(
       include: { cvs: true },
     });
     if (!source) {
-      return { ok: false, error: "Source screening job not found" };
+      return { ok: false, error: errorCode("Source screening job not found") };
     }
 
     const job = await prisma.job.create({
@@ -563,12 +566,12 @@ export async function cloneJobWithCvs(
       select: { id: true },
     });
 
-    revalidatePath("/");
+    revalidatePath("/[locale]", "page");
     revalidateJob(job.id);
     return { ok: true, data: { id: job.id } };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to clone this screening job";
-    return { ok: false, error: message };
+    return { ok: false, error: errorCode(message) };
   }
 }

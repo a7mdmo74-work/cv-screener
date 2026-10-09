@@ -1,10 +1,10 @@
 import { SCORE_CRITERIA, type Rubric } from "@/lib/schemas/rubric";
-import { LLM_GROUNDING_RULES, SENIOR_HR_MANAGER_ROLE } from "@/lib/llm/prompts";
+import { LLM_GROUNDING_RULES, SENIOR_HR_MANAGER_ROLE, outputLanguageRule } from "@/lib/llm/prompts";
 
 export const TURBO_SYSTEM_PREFIX = [
   SENIOR_HR_MANAGER_ROLE,
   LLM_GROUNDING_RULES,
-  "Compact JSON only. Scores object first, then profile. No Arabic. No quotes.",
+  "Compact JSON only. Scores object first, then profile. No quotes.",
   "Non-PII profile only. Missing = null. Never invent.",
   "scores keys: relevantExperience,leadership,technicalSkills,softwareSystems,achievements,uaeExperience,jobFit. Ints 0-10. Conservative; 9-10 only with evidence.",
   "If the JD has Senior and Junior tracks, score jobFit for the better-matching track.",
@@ -28,7 +28,7 @@ export function turboRubricBlock(rubric: Rubric): string {
 }
 
 export function turboSystemPrompt(rubric: Rubric): string {
-  return `${TURBO_SYSTEM_PREFIX}\n${turboRubricBlock(rubric)}`;
+  return `${TURBO_SYSTEM_PREFIX}\n${outputLanguageRule(rubric.outputLanguage)}\n${turboRubricBlock(rubric)}`;
 }
 
 export function turboUserPrompt(anonymizedText: string, includeFlags: boolean): string {

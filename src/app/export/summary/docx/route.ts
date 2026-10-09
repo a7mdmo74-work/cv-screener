@@ -1,3 +1,5 @@
+import { requestLocale } from "@/i18n/request-locale";
+import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { prisma } from "@/db/client";
 import { todayStamp } from "@/lib/export/format";
@@ -8,13 +10,15 @@ import { rankJobCandidates } from "@/lib/screening/results";
 
 export async function GET(request: Request) {
   await connection();
+  const locale = await requestLocale(request);
+  const t = await getTranslations({locale,namespace:"errors"});
   const jobIds = (new URL(request.url).searchParams.get("jobIds") ?? "")
     .split(",")
     .map((id) => id.trim())
     .filter((id) => id.length > 0);
 
   if (jobIds.length === 0) {
-    return new Response("Select at least one completed job", { status: 400 });
+    return new Response(t("EXPORT_SELECT"), { status: 400 });
   }
 
   const jobs = await prisma.job.findMany({
@@ -26,7 +30,7 @@ export async function GET(request: Request) {
     .filter((job): job is NonNullable<typeof job> => Boolean(job));
 
   if (ordered.length === 0) {
-    return new Response("Screening jobs not found", { status: 404 });
+    return new Response(t("JOB_NOT_FOUND"), { status: 404 });
   }
 
   const payload = ordered.map((job) => {
@@ -44,7 +48,7 @@ export async function GET(request: Request) {
     };
   });
 
-  const buffer = await buildUnifiedSummaryDocx({ jobs: payload });
+  const buffer = await buildUnifiedSummaryDocx({ jobs: payload, locale });
   const fileName = `unified_screening_summary_${todayStamp()}.docx`;
   const encoded = encodeURIComponent(fileName);
 
