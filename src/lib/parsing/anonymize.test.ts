@@ -44,3 +44,19 @@ describe("anonymizeCvText", () => {
     expect(result).not.toContain("linkedin.com/in/ahmed-amer");
   });
 });
+
+
+describe("content preservation regressions", () => {
+  it.each(["Adobe", "Essex", "single source of truth", "Senior Accountant"])("preserves %s", (value) => {
+    expect(anonymizeCvText(`${value}\nSkills: ${value}`)).toContain(value);
+  });
+  it("does not identify a job title as a name", () => {
+    expect(detectHeaderName("Senior Accountant\nSkills: Adobe")).toBeNull();
+  });
+  it("requires demographic labels", () => {
+    const result = anonymizeCvText("DOB: 1990-01-01\nGender: Male\nMarital status: Single");
+    expect(result).toContain("[DATE OF BIRTH]");
+    expect(result).toContain("[GENDER]");
+    expect(result).toContain("[MARITAL STATUS]");
+  });
+});

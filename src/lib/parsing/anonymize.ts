@@ -6,7 +6,7 @@ export function isSectionTitle(line: string): boolean {
 }
 
 function looksLikeName(line: string): boolean {
-  if (isSectionTitle(line)) {
+  if (isSectionTitle(line) || /\b(accountant|engineer|manager|developer|director|analyst|consultant|officer|specialist|supervisor|assistant|chief|trainee|senior|junior|lead|bookkeeper)\b/i.test(line)) {
     return false;
   }
   if (line.length > 60 || /\d/.test(line) || /@/.test(line)) {
@@ -16,6 +16,7 @@ function looksLikeName(line: string): boolean {
   if (words.length < 2 || words.length > 5) {
     return false;
   }
+  if (/^[a-z ]+$/.test(line)) return false;
   return words.every((word) => /^[\p{L}'’-]+$/u.test(word));
 }
 
@@ -56,17 +57,17 @@ export function anonymizeCvText(rawText: string): string {
     "[PHONE]",
   );
   text = text.replace(
-    /(?:date of birth|d\.?o\.?b\.?|born|birthday)\s*[:\-]?\s*[^\n]*/gi,
+    /\b(?:date of birth|d\.?o\.?b\.?|born|birthday)\s*[:：\-]\s*[^\n]*/gi,
     "[DATE OF BIRTH]",
   );
   text = text.replace(/(?:^|\n)\s*age\s*[:\-]?\s*\d{1,2}\b/gi, "\n[AGE]");
   text = text.replace(
-    /(?:nationality|citizenship)\s*[:\-]?\s*[^\n]*/gi,
+    /\b(?:nationality|citizenship)\s*[:：\-]\s*[^\n]*/gi,
     "[NATIONALITY]",
   );
-  text = text.replace(/(?:gender|sex)\s*[:\-]?\s*[^\n]*/gi, "[GENDER]");
+  text = text.replace(/\b(?:gender|sex)\b\s*[:：\-]\s*[^\n]*/gi, "[GENDER]");
   text = text.replace(
-    /(?:marital status|married|single|divorced|widowed)\s*[:\-]?\s*[^\n]*/gi,
+    /\bmarital status\b\s*[:：\-]\s*[^\n]*/gi,
     "[MARITAL STATUS]",
   );
   text = text.replace(
