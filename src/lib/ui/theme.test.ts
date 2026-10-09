@@ -3,7 +3,7 @@ import { resolve, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { assertContrast, contrastRatio, readThemeTokens, resolveToken } from "../../../scripts/check-contrast";
 import { recommendationTierSchema } from "@/lib/schemas/score";
-import { recommendationTiers, tierClasses } from "@/lib/ui/tiers";
+import { recommendationTiers, tierClasses, recommendationTextClass } from "@/lib/ui/tiers";
 import { rawColorAllowlist, rawColorViolations } from "@/lib/ui/color-guard";
 
 const css = readFileSync(resolve("src/app/globals.css"), "utf8");
@@ -27,6 +27,8 @@ describe("theme palettes", () => {
   it("covers every schema tier using the required semantic meaning", () => {
     expect(Object.keys(recommendationTiers)).toEqual(recommendationTierSchema.options);
     expect(Object.values(recommendationTiers)).toEqual(["success", "info", "warning", "danger"]);
+    expect(recommendationTextClass(null)).toBe("text-muted");
+    for (const tier of recommendationTierSchema.options) expect(recommendationTextClass(tier)).toBe(`text-${recommendationTiers[tier]}`);
     for (const tone of Object.values(recommendationTiers)) {
       expect(tierClasses[tone]).toContain(`bg-${tone}-bg`);
       expect(tierClasses[tone]).toContain(`text-${tone}`);

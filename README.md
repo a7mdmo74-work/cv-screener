@@ -147,7 +147,7 @@ The requested light ring, warning foreground and both border palettes were adjus
 1. Add a light constant (`--light-example`) in the constants block, activate `--example: var(--light-example)` in `:root, .print-light`, and define `--example` in `.dark`. Use meaning-based names.
 2. Expose `--color-example: var(--example)` in `@theme inline`. Add its light reference to the print override and its intended foreground/background pairs to `scripts/check-contrast.ts`.
 3. Use utilities such as `bg-surface text-foreground border-border`, `text-muted`, and `bg-accent text-accent-foreground hover:bg-accent-hover`. Use `currentColor` or CSS variables for SVG/chart styling. Avoid opacity on text and focus rings because it reduces contrast. Disabled controls retain readable labels; transitions respect reduced motion.
-4. Recommendation presentation belongs in `src/lib/ui/tiers.ts`: Strong → success, Good → info, Average → warning, Not suitable → danger. Reuse `recommendationClass` or `tierClasses` in badges, cards, tables, charts and drawers. Ranking thresholds remain in the ranking code.
+4. Recommendation presentation belongs in `src/lib/ui/tiers.ts`: Strong → success, Good → info, Average → warning, Not suitable → danger. Reuse `recommendationClass`, `recommendationTextClass` or `tierClasses` in badges, cards, tables, charts and drawers. Ranking thresholds remain in the ranking code.
 5. Keep all user-facing strings in the next-intl catalogs. Run `npx tsc --noEmit`, `npm run lint`, `npm test`, and `npm run build`.
 
 ### Fixed-color allowlist and print rule
@@ -168,3 +168,10 @@ Wrap any future HTML report or exam sheet in `.print-light` and avoid adding a `
 - Inspect recommendation badges, the candidate drawer, sticky table headers/row hover, filters, progress bars, forms, validation/action errors, empty states and skeletons. Exercise upload idle, hover, drag, uploading, disabled and error states using representative files.
 - Check narrow viewports, RTL drawer position, unmirrored theme icons, long Arabic text, native inputs, autofill, selection, scrollbars and reduced motion.
 - Open print preview while dark mode is active and check any report/exam content remains light. Open generated Excel and DOCX files in their target applications; verify document styling is independent of the web theme.
+
+
+### Theme verification completed
+
+TypeScript, ESLint, all 86 Vitest tests (including six theme guards), 126 contrast pairs, and the production build pass. Browser checks passed 39 scenarios against development, 39 against the Cache Components production build, and 39 against an isolated cache-disabled production build. These checks covered the first visible frame with hydration scripts delayed, preference persistence, live system changes, English/Arabic routes, existing results/drawers/upload/clone pages, mid-form toggling, forced-light print styles and reduced motion. English and Arabic wizard layouts also stayed within a 390px viewport.
+
+Actual file uploads, worker/model execution, platform-specific autofill rendering, screen-reader use, office-application viewing, and a future PDF/exam report were not exercised. The manual checklist above covers these remaining checks. Database/model behavior and document generators were not changed for theming.

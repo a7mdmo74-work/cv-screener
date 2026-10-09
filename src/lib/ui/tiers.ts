@@ -19,3 +19,14 @@ export const tierClasses = {
 export function recommendationClass(tier: RecommendationTier): string {
   return tierClasses[recommendationTiers[tier]];
 }
+
+const tierTextClasses = {
+  success: "text-success",
+  info: "text-info",
+  warning: "text-warning",
+  danger: "text-danger",
+} as const satisfies Record<TierTone, string>;
+
+export function recommendationTextClass(tier: RecommendationTier | null): string {
+  return tier ? tierTextClasses[recommendationTiers[tier]] : "text-muted";
+}
