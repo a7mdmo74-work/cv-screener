@@ -1,0 +1,3 @@
+import type { Translator } from "./labels";
+const keys={"Enter a job title":"validation.title","Add a bit more detail so the model can ask useful questions":"validation.description","Enter the geographic scope":"validation.geographicScope","Enter the employment type":"validation.employmentType","Enter the seniority level":"validation.seniorityLevel"} as const;
+export function validationText(t:Translator,message:string|undefined) {if(!message)return "";return t(keys[message as keyof typeof keys]??(/small|min/i.test(message)?"validation.too_small":/big|max/i.test(message)?"validation.too_big":"validation.invalid"));}
